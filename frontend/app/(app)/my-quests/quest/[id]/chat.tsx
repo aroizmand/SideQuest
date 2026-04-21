@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Channel, MessageList, MessageInput, Chat } from 'stream-chat-expo';
+import { Channel, MessageList, MessageInput, Chat } from 'stream-chat-react-native';
 import { useStreamChannel } from '@/hooks/useStreamChannel';
 import { streamClient } from '@/lib/stream';
 

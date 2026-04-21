@@ -16,7 +16,7 @@
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
-    "@stream-io/stream-chat-expo": "^5.37.0",
+    "stream-chat-react-native": "^5.37.0",
     "@stripe/stripe-react-native": "~0.40.0",
     "@supabase/supabase-js": "^2.47.0",
     "expo": "~54.0.33",
