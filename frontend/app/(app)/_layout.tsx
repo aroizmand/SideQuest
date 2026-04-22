@@ -1,44 +1,29 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Redirect, Tabs } from 'expo-router';
+import { useAuthStore } from '@/stores/authStore';
+import { Colors } from '@/constants/theme';
+import { Text } from 'react-native';
 
 export default function AppLayout() {
+  const { session, initialized, hasProfile } = useAuthStore();
+
+  if (!initialized) return null;
+  if (!session) return <Redirect href="/(auth)/welcome" />;
+  // Session exists but onboarding not done — send to profile setup
+  if (!hasProfile) return <Redirect href="/(auth)/onboarding/profile-setup" />;
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: { backgroundColor: '#0D0D0D', borderTopColor: '#1A1A1A' },
-        tabBarActiveTintColor: '#FF5C00',
-        tabBarInactiveTintColor: '#666',
+        tabBarStyle: { backgroundColor: Colors.background, borderTopColor: Colors.border },
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textMuted,
       }}
     >
-      <Tabs.Screen
-        name="feed"
-        options={{
-          title: 'Discover',
-          tabBarIcon: ({ color, size }) => <Ionicons name="compass-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="create"
-        options={{
-          title: 'Create',
-          tabBarIcon: ({ color, size }) => <Ionicons name="add-circle-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="my-quests"
-        options={{
-          title: 'My Quests',
-          tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
-        }}
-      />
+      <Tabs.Screen name="feed" options={{ title: 'Feed', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🗺</Text> }} />
+      <Tabs.Screen name="create" options={{ title: 'Create', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 22 }}>＋</Text> }} />
+      <Tabs.Screen name="my-quests" options={{ title: 'My Quests', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>⚔️</Text> }} />
+      <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text> }} />
     </Tabs>
   );
 }

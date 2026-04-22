@@ -1,42 +1,140 @@
-import { View, Text, StyleSheet, Pressable, ScrollView, Switch } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useNotificationSettings } from '@/hooks/useNotificationSettings';
+import { Screen } from '@/components/Screen';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
+import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
+
+type RowProps = {
+  label: string;
+  onPress: () => void;
+  destructive?: boolean;
+  hideChevron?: boolean;
+};
+
+function Row({ label, onPress, destructive, hideChevron }: RowProps) {
+  return (
+    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
+      <Text style={[styles.rowLabel, destructive && styles.rowLabelDestructive]}>{label}</Text>
+      {!hideChevron && <Text style={styles.chevron}>›</Text>}
+    </TouchableOpacity>
+  );
+}
+
+function Separator() {
+  return <View style={styles.separator} />;
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { digestEnabled, setDigestEnabled } = useNotificationSettings();
+  const { setSession, setHasProfile } = useAuthStore();
+  const [deleting, setDeleting] = useState(false);
+
+  function handleSignOut() {
+    Alert.alert('Sign out', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: () => supabase.auth.signOut() },
+    ]);
+  }
+
+  function handleDeleteAccount() {
+    Alert.alert(
+      'Delete account',
+      'This permanently removes your profile, quests, and all data. It cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete my account',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert(
+              'Are you absolutely sure?',
+              'Your account will be gone forever.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Yes, delete it', style: 'destructive', onPress: confirmDelete },
+              ]
+            ),
+        },
+      ]
+    );
+  }
+
+  async function confirmDelete() {
+    setDeleting(true);
+    const { error } = await supabase.rpc('delete_my_account');
+    setDeleting(false);
+    if (error) { Alert.alert('Error', error.message); return; }
+    setSession(null);
+    setHasProfile(false);
+    await supabase.auth.signOut().catch(() => {});
+  }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Pressable style={styles.back} onPress={() => router.back()}><Text style={styles.backText}>← Back</Text></Pressable>
-      <Text style={styles.title}>Settings</Text>
-
-      <Text style={styles.section}>Notifications</Text>
-      <View style={styles.row}>
-        <Text style={styles.rowLabel}>Daily quest digest</Text>
-        <Switch value={digestEnabled} onValueChange={setDigestEnabled} trackColor={{ true: '#FF5C00' }} />
+    <Screen>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backText}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.title}>Settings</Text>
+        <View style={styles.backBtn} />
       </View>
 
-      <Text style={styles.section}>Account</Text>
-      <Pressable style={styles.menuItem} onPress={() => router.push('/(app)/profile/verify-id')}>
-        <Text style={styles.menuItemText}>ID Verification</Text>
-      </Pressable>
-      <Pressable style={styles.menuItem}>
-        <Text style={[styles.menuItemText, { color: '#FF4444' }]}>Delete Account</Text>
-      </Pressable>
-    </ScrollView>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.sectionTitle}>ACCOUNT</Text>
+        <View style={styles.card}>
+          <Row label="Edit Profile" onPress={() => router.push('/profile/edit-profile')} />
+        </View>
+
+        <Text style={styles.sectionTitle}>LEGAL</Text>
+        <View style={styles.card}>
+          <Row label="Terms of Service" onPress={() => router.push({ pathname: '/profile/legal', params: { type: 'tos' } })} />
+          <Separator />
+          <Row label="Privacy Policy" onPress={() => router.push({ pathname: '/profile/legal', params: { type: 'privacy' } })} />
+        </View>
+
+        <View style={styles.card}>
+          <Row label="Sign Out" onPress={handleSignOut} hideChevron />
+        </View>
+
+        <View style={styles.card}>
+          <Row
+            label={deleting ? 'Deleting…' : 'Delete Account'}
+            onPress={deleting ? () => {} : handleDeleteAccount}
+            destructive
+            hideChevron
+          />
+        </View>
+      </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D0D0D' },
-  content: { padding: 24, paddingTop: 60 },
-  back: { marginBottom: 24 },
-  backText: { color: '#FF5C00', fontSize: 15 },
-  title: { fontSize: 28, fontWeight: '800', color: '#FFF', marginBottom: 32 },
-  section: { fontSize: 12, color: '#666', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, marginTop: 24 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1A1A1A' },
-  rowLabel: { color: '#FFF', fontSize: 16 },
-  menuItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#1A1A1A' },
-  menuItemText: { color: '#FFF', fontSize: 16 },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
+  },
+  backBtn: { width: 36, padding: Spacing.xs },
+  backText: { color: Colors.text, fontSize: FontSize.xl },
+  title: { color: Colors.text, fontSize: FontSize.lg, fontWeight: '700' },
+  content: { padding: Spacing.lg, gap: Spacing.sm },
+  sectionTitle: {
+    color: Colors.textMuted, fontSize: FontSize.xs, fontWeight: '600',
+    textTransform: 'uppercase', letterSpacing: 1,
+    marginTop: Spacing.md, marginBottom: Spacing.xs, paddingHorizontal: Spacing.xs,
+  },
+  card: {
+    backgroundColor: Colors.surface, borderRadius: Radius.md,
+    borderWidth: 1, borderColor: Colors.border, overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md, paddingVertical: 16,
+  },
+  rowLabel: { color: Colors.text, fontSize: FontSize.md },
+  rowLabelDestructive: { color: Colors.error },
+  chevron: { color: Colors.textMuted, fontSize: 20 },
+  separator: { height: 1, backgroundColor: Colors.border, marginHorizontal: Spacing.md },
 });

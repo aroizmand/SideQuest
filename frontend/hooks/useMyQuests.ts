@@ -1,29 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/stores/authStore';
+import type { Quest } from '@/types/quest';
 
 export function useMyQuests() {
-  const [created, setCreated] = useState<any[]>([]);
-  const [joined, setJoined] = useState<any[]>([]);
+  const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(true);
-  const { session } = useAuthStore();
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (!session) return;
-    Promise.all([
-      supabase.from('v_feed_quests').select('*').eq('creator_id', session.user.id),
+  async function load(isRefresh = false) {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); setRefreshing(false); return; }
+
+    const [{ data: created }, { data: memberships }] = await Promise.all([
+      supabase.from('dim_quest').select('*').eq('creator_id', user.id),
       supabase
         .from('fact_quest_memberships')
-        .select('quest_id, v_feed_quests(*)')
-        .eq('user_id', session.user.id)
-        .eq('is_creator', false)
+        .select('dim_quest(*)')
+        .eq('user_id', user.id)
         .is('left_at', null),
-    ]).then(([createdRes, joinedRes]) => {
-      setCreated(createdRes.data ?? []);
-      setJoined((joinedRes.data ?? []).map((m: any) => m['v_feed_quests']).filter(Boolean));
-      setLoading(false);
-    });
-  }, [session]);
+    ]);
 
-  return { created, joined, loading };
+    const createdQuests = (created ?? []) as Quest[];
+    const joinedQuests = (memberships ?? [])
+      .map((row: any) => row.dim_quest)
+      .filter(Boolean) as Quest[];
+
+    // Merge, deduplicate, sort by date descending
+    const seen = new Set(createdQuests.map((q) => q.quest_id));
+    const merged = [
+      ...createdQuests,
+      ...joinedQuests.filter((q) => !seen.has(q.quest_id)),
+    ].sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
+
+    setQuests(merged);
+    setLoading(false);
+    setRefreshing(false);
+  }
+
+  useFocusEffect(
+    useCallback(() => { load(); }, [])
+  );
+
+  return { quests, loading, refreshing, refresh: () => load(true) };
 }

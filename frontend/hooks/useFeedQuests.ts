@@ -1,29 +1,30 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-
-export interface FeedFilters {
-  category?: string;
-  radiusKm?: number;
-  ageMin?: number;
-  ageMax?: number;
-  genderRestriction?: string;
-}
+import type { FeedQuest } from '@/types/quest';
 
 export function useFeedQuests() {
-  const [quests, setQuests] = useState<any[]>([]);
+  const [quests, setQuests] = useState<FeedQuest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<FeedFilters>({});
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    let query = supabase.from('v_feed_quests').select('*');
-    if (filters.category) query = query.eq('category', filters.category);
-    const { data } = await query.order('starts_at', { ascending: true });
-    setQuests(data ?? []);
+  async function load(isRefresh = false) {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+
+    const { data } = await supabase
+      .from('v_feed_quests')
+      .select('*')
+      .order('starts_at', { ascending: true });
+
+    setQuests((data as FeedQuest[]) ?? []);
     setLoading(false);
-  }, [filters]);
+    setRefreshing(false);
+  }
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useFocusEffect(
+    useCallback(() => { load(); }, [])
+  );
 
-  return { quests, loading, refetch: fetch, filters, setFilters };
+  return { quests, loading, refreshing, refresh: () => load(true) };
 }

@@ -1,14 +1,12 @@
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function AuthLayout() {
-  return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="welcome" />
-      <Stack.Screen name="phone-entry" />
-      <Stack.Screen name="otp-verify" />
-      <Stack.Screen name="onboarding/selfie" />
-      <Stack.Screen name="onboarding/profile-setup" />
-      <Stack.Screen name="onboarding/tos-accept" />
-    </Stack>
-  );
+  const { session, initialized, hasProfile } = useAuthStore();
+
+  if (!initialized) return null;
+  // Only redirect to app if they have completed onboarding
+  if (session && hasProfile) return <Redirect href="/(app)/feed" />;
+
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

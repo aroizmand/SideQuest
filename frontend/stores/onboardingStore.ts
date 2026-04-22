@@ -1,21 +1,22 @@
 import { create } from 'zustand';
+import type { Gender } from '@/types/user';
 
-interface OnboardingState {
-  photoUri: string | null;
-  firstName: string | null;
-  age: number | null;
-  gender: string | null;
-  setPhoto: (uri: string) => void;
-  setProfile: (profile: { firstName: string; age: number; gender: string }) => void;
+type OnboardingState = {
+  phone: string;
+  firstName: string;
+  age: string;
+  gender: Gender | '';
+  setPhone: (phone: string) => void;
+  setProfile: (firstName: string, age: string, gender: Gender) => void;
   reset: () => void;
-}
+};
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
-  photoUri: null,
-  firstName: null,
-  age: null,
-  gender: null,
-  setPhoto: (uri) => set({ photoUri: uri }),
-  setProfile: ({ firstName, age, gender }) => set({ firstName, age, gender }),
-  reset: () => set({ photoUri: null, firstName: null, age: null, gender: null }),
+  phone: '',
+  firstName: '',
+  age: '',
+  gender: '',
+  setPhone: (phone) => set({ phone }),
+  setProfile: (firstName, age, gender) => set({ firstName, age, gender }),
+  reset: () => set({ phone: '', firstName: '', age: '', gender: '' }),
 }));

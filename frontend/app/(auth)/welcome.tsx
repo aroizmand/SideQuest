@@ -1,24 +1,29 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Screen } from '@/components/Screen';
+import { Button } from '@/components/Button';
+import { Colors, FontSize, Spacing } from '@/constants/theme';
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.logo}>SideQuest</Text>
-      <Text style={styles.tagline}>Adventures happening now, near you.</Text>
-      <Pressable style={styles.button} onPress={() => router.push('/(auth)/phone-entry')}>
-        <Text style={styles.buttonText}>Get Started</Text>
-      </Pressable>
-    </View>
+    <Screen style={styles.screen}>
+      <View style={styles.hero}>
+        <Text style={styles.logo}>SideQuest</Text>
+        <Text style={styles.tagline}>Real-world adventures, together.</Text>
+      </View>
+      <View style={styles.actions}>
+        <Button label="Get Started" onPress={() => router.push('/(auth)/phone-entry')} />
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D0D0D', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  logo: { fontSize: 40, fontWeight: '800', color: '#FF5C00', marginBottom: 12 },
-  tagline: { fontSize: 16, color: '#AAAAAA', textAlign: 'center', marginBottom: 48 },
-  button: { backgroundColor: '#FF5C00', paddingVertical: 16, paddingHorizontal: 48, borderRadius: 12 },
-  buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  screen: { justifyContent: 'space-between', paddingVertical: Spacing.xxl },
+  hero: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.sm },
+  logo: { color: Colors.text, fontSize: FontSize.xxxl, fontWeight: '700' },
+  tagline: { color: Colors.textSecondary, fontSize: FontSize.md },
+  actions: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
 });

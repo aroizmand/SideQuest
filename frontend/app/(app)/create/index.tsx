@@ -1,95 +1,137 @@
 import { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CATEGORIES } from '@/constants/categories';
-import { GENDER_RESTRICTION_OPTIONS } from '@/constants/options';
+import { DateTimePicker } from '@/components/DateTimePicker';
+import { Screen } from '@/components/Screen';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
 import { useCreateQuest } from '@/hooks/useCreateQuest';
+import { useCategories } from '@/hooks/useCategories';
+import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
 
-export default function CreateQuestScreen() {
+export default function CreateScreen() {
+  const router = useRouter();
+  const { createQuest, loading, error: createError } = useCreateQuest();
+  const { categories } = useCategories();
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [startsAt, setStartsAt] = useState('');
-  const [maxParticipants, setMaxParticipants] = useState('');
-  const [ageMin, setAgeMin] = useState('18');
-  const [ageMax, setAgeMax] = useState('');
-  const [genderRestriction, setGenderRestriction] = useState('all');
-  const router = useRouter();
-  const { create, creating, error } = useCreateQuest();
+  const [neighborhood, setNeighborhood] = useState('');
+  const [startsAt, setStartsAt] = useState<Date | null>(null);
+  const [maxParticipants, setMaxParticipants] = useState('6');
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [error, setError] = useState('');
 
-  const isValid = title.trim().length >= 5 && description.trim().length >= 20 && category && startsAt && Number(maxParticipants) >= 2;
+  const maxCount = parseInt(maxParticipants, 10) || 6;
 
-  async function submit() {
-    const quest = await create({ title, description, category, startsAt, maxParticipants: Number(maxParticipants), ageMin: Number(ageMin), ageMax: ageMax ? Number(ageMax) : null, genderRestriction });
-    if (quest) router.replace('/(app)/feed');
+  async function handleCreate() {
+    if (!title.trim() || !description.trim() || !neighborhood.trim() || !startsAt || !categoryId) {
+      setError('Fill in all fields and pick a category.');
+      return;
+    }
+    if (title.trim().length < 5) { setError('Title must be at least 5 characters.'); return; }
+    if (description.trim().length < 20) { setError(`Description needs ${20 - description.trim().length} more characters.`); return; }
+    if (description.trim().length > 500) { setError('Description must be under 500 characters.'); return; }
+    if (startsAt <= new Date()) { setError('Choose a future date and time.'); return; }
+    if (maxCount < 2 || maxCount > 10) { setError('Participants must be between 2 and 10.'); return; }
+    setError('');
+    const quest = await createQuest({
+      title: title.trim(),
+      description: description.trim(),
+      neighborhood: neighborhood.trim(),
+      starts_at: startsAt.toISOString(),
+      max_participants: maxCount,
+      category_id: categoryId,
+    });
+    if (quest) router.push('/(app)/my-quests');
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>New SideQuest</Text>
+    <Screen>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>New Quest</Text>
 
-      <Text style={styles.label}>Title</Text>
-      <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="e.g. Sunrise hike on Chief Mountain" placeholderTextColor="#555" />
+        <Input label="Title" value={title} onChangeText={setTitle} placeholder="Saturday hike at Nose Hill" />
+        <View>
+          <Input
+            label="Description"
+            value={description}
+            onChangeText={(t) => setDescription(t.slice(0, 500))}
+            placeholder="What's the plan? What should people bring?"
+            multiline
+            numberOfLines={3}
+          />
+          <Text style={styles.charCount}>{description.length}/500{description.length < 20 ? ` (min 20)` : ''}</Text>
+        </View>
+        <Input label="Neighborhood" value={neighborhood} onChangeText={setNeighborhood} placeholder="Kensington" />
 
-      <Text style={styles.label}>Description</Text>
-      <TextInput style={[styles.input, styles.multiline]} value={description} onChangeText={setDescription} placeholder="What are we doing? What to bring? Fitness level?" placeholderTextColor="#555" multiline numberOfLines={4} />
+        <View>
+          <Text style={styles.label}>Date & time</Text>
+          <DateTimePicker value={startsAt} onChange={setStartsAt} />
+        </View>
 
-      <Text style={styles.label}>Category</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-        {CATEGORIES.map((cat) => (
-          <Pressable key={cat.id} style={[styles.chip, category === cat.name && styles.chipActive]} onPress={() => setCategory(cat.name)}>
-            <Text style={[styles.chipText, category === cat.name && styles.chipTextActive]}>{cat.name}</Text>
-          </Pressable>
-        ))}
+        <View>
+          <Text style={styles.label}>Max participants (2–10)</Text>
+          <View style={styles.countRow}>
+            {[2, 4, 6, 8, 10].map((n) => (
+              <TouchableOpacity
+                key={n}
+                style={[styles.countChip, maxCount === n && styles.countChipActive]}
+                onPress={() => setMaxParticipants(String(n))}
+              >
+                <Text style={[styles.countText, maxCount === n && styles.countTextActive]}>{n}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View>
+          <Text style={styles.label}>Category</Text>
+          <View style={styles.chipGrid}>
+            {categories.map((c) => (
+              <TouchableOpacity
+                key={c.category_id}
+                style={[styles.chip, categoryId === c.category_id && styles.chipActive]}
+                onPress={() => setCategoryId(c.category_id)}
+              >
+                <Text style={[styles.chipText, categoryId === c.category_id && styles.chipTextActive]}>{c.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {(error || createError) ? <Text style={styles.error}>{error || createError}</Text> : null}
+        <Button
+          label="Create Quest"
+          onPress={handleCreate}
+          loading={loading}
+          disabled={!title || !description || !neighborhood || !startsAt || !categoryId}
+        />
       </ScrollView>
-
-      <Text style={styles.label}>Date & Time (ISO format)</Text>
-      <TextInput style={styles.input} value={startsAt} onChangeText={setStartsAt} placeholder="2026-04-22T08:00:00" placeholderTextColor="#555" />
-
-      <Text style={styles.label}>Max Participants (2–20)</Text>
-      <TextInput style={styles.input} value={maxParticipants} onChangeText={setMaxParticipants} keyboardType="number-pad" maxLength={2} placeholder="e.g. 6" placeholderTextColor="#555" />
-
-      <Text style={styles.label}>Age Restriction (optional)</Text>
-      <View style={styles.row}>
-        <TextInput style={[styles.input, styles.halfInput]} value={ageMin} onChangeText={setAgeMin} keyboardType="number-pad" maxLength={3} placeholder="Min" placeholderTextColor="#555" />
-        <TextInput style={[styles.input, styles.halfInput]} value={ageMax} onChangeText={setAgeMax} keyboardType="number-pad" maxLength={3} placeholder="Max" placeholderTextColor="#555" />
-      </View>
-
-      <Text style={styles.label}>Gender Restriction</Text>
-      <View style={styles.chipRow}>
-        {GENDER_RESTRICTION_OPTIONS.map((opt) => (
-          <Pressable key={opt.value} style={[styles.chip, genderRestriction === opt.value && styles.chipActive]} onPress={() => setGenderRestriction(opt.value)}>
-            <Text style={[styles.chipText, genderRestriction === opt.value && styles.chipTextActive]}>{opt.label}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      <Pressable style={[styles.button, (!isValid || creating) && styles.buttonDisabled]} onPress={submit} disabled={!isValid || creating}>
-        {creating ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Post SideQuest</Text>}
-      </Pressable>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0D0D0D' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 60 },
-  title: { fontSize: 28, fontWeight: '800', color: '#FFF', marginBottom: 24 },
-  label: { fontSize: 13, color: '#AAA', marginBottom: 8, marginTop: 20, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: '#1A1A1A', color: '#FFF', fontSize: 15, padding: 14, borderRadius: 10 },
-  multiline: { height: 100, textAlignVertical: 'top' },
-  chipScroll: { marginBottom: 4 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1, borderColor: '#333', marginRight: 8 },
-  chipActive: { backgroundColor: '#FF5C00', borderColor: '#FF5C00' },
-  chipText: { color: '#AAA', fontSize: 13 },
-  chipTextActive: { color: '#FFF', fontWeight: '600' },
-  row: { flexDirection: 'row', gap: 12 },
-  halfInput: { flex: 1 },
-  error: { color: '#FF4444', marginTop: 12, fontSize: 14 },
-  button: { backgroundColor: '#FF5C00', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 32 },
-  buttonDisabled: { opacity: 0.4 },
-  buttonText: { color: '#FFF', fontWeight: '700', fontSize: 16 },
+  content: { padding: Spacing.lg, gap: Spacing.lg },
+  title: { color: Colors.text, fontSize: FontSize.xxl, fontWeight: '700' },
+  label: { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: '500', marginBottom: Spacing.sm },
+  countRow: { flexDirection: 'row', gap: Spacing.sm },
+  countChip: {
+    width: 48, height: 48, borderRadius: Radius.md, borderWidth: 1,
+    borderColor: Colors.border, alignItems: 'center', justifyContent: 'center',
+  },
+  countChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  countText: { color: Colors.textSecondary, fontSize: FontSize.md, fontWeight: '600' },
+  countTextActive: { color: Colors.text },
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  chip: {
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+    borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border,
+  },
+  chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  chipText: { color: Colors.textSecondary, fontSize: FontSize.sm },
+  chipTextActive: { color: Colors.text, fontWeight: '600' },
+  charCount: { color: Colors.textMuted, fontSize: FontSize.xs, textAlign: 'right', marginTop: 4 },
+  error: { color: Colors.error, fontSize: FontSize.sm },
 });
