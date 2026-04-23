@@ -1,11 +1,10 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
-import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Colors, FontSize, Spacing } from '@/constants/theme';
-import { useState } from 'react';
 
 export default function TOSAcceptScreen() {
   const router = useRouter();
@@ -14,7 +13,6 @@ export default function TOSAcceptScreen() {
 
   async function handleAccept() {
     setLoading(true);
-    // dim_user has no tos_accepted_at column — profile existence is sufficient
     setHasProfile(true);
     setLoading(false);
     router.replace('/(app)/feed');
@@ -22,6 +20,11 @@ export default function TOSAcceptScreen() {
 
   return (
     <Screen style={styles.screen}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backText}>←</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Terms of Service</Text>
         <Text style={styles.body}>
@@ -41,6 +44,9 @@ export default function TOSAcceptScreen() {
 
 const styles = StyleSheet.create({
   screen: { justifyContent: 'space-between' },
+  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  backBtn: { padding: Spacing.sm },
+  backText: { color: Colors.text, fontSize: FontSize.xl },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   title: { color: Colors.text, fontSize: FontSize.xxl, fontWeight: '700' },
   body: { color: Colors.textSecondary, fontSize: FontSize.md, lineHeight: 24 },

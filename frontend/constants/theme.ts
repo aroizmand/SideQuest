@@ -1,14 +1,15 @@
 export const Colors = {
-  background: '#0D0D0D',
-  surface: '#1A1A1A',
-  border: '#2A2A2A',
-  primary: '#FF5C00',
-  primaryDark: '#CC4A00',
-  text: '#FFFFFF',
-  textSecondary: '#888888',
-  textMuted: '#444444',
-  error: '#FF4444',
-  success: '#00C853',
+  background: '#5EC8D0',   // Flappy Bird sky
+  surface: '#F5E8A8',      // warm sandy paper
+  border: '#2C1B2E',       // very dark retro outline
+  primary: '#F5C300',      // golden yellow — the bird
+  primaryDark: '#C49000',
+  accent: '#4EA82A',       // pipe green
+  text: '#2C1B2E',         // dark ink on light surfaces
+  textSecondary: '#6B3A3A',
+  textMuted: '#9B6A6A',
+  error: '#D04040',
+  success: '#4EA82A',
 } as const;
 
 export const Spacing = {
@@ -20,10 +21,11 @@ export const Spacing = {
   xxl: 48,
 } as const;
 
+// Pixel/retro aesthetic — boxy, minimal rounding
 export const Radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
+  sm: 0,
+  md: 2,
+  lg: 4,
   full: 9999,
 } as const;
 

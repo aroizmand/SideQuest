@@ -1,5 +1,12 @@
 export type QuestStatus = 'pending_review' | 'active' | 'full' | 'cancelled' | 'completed';
 
+export type ParticipantPreview = {
+  user_id: string;
+  first_name: string;
+  photo_url: string | null;
+  age: number;
+};
+
 // Matches v_feed_quests view
 export type FeedQuest = {
   quest_id: string;
@@ -21,8 +28,11 @@ export type FeedQuest = {
   creator_id: string;
   creator_first_name: string;
   creator_photo_url: string;
+  creator_age: number;
+  creator_gender: string;
   creator_rating: number | null;
   creator_verified: boolean;
+  participants: ParticipantPreview[];
 };
 
 // Matches dim_quest table

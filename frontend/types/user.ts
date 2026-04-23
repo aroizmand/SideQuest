@@ -6,6 +6,7 @@ export type User = {
   user_id: string;
   first_name: string;
   photo_url: string;
+  bio: string | null;
   age: number;
   gender: Gender;
   rating_avg: number | null;

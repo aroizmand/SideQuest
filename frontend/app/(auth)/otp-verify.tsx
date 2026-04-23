@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, TouchableOpacity, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
@@ -42,7 +42,14 @@ export default function OTPVerifyScreen() {
   const digits = code.split('');
 
   return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <Screen style={styles.screen}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backText}>←</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.content}>
         <Text style={styles.title}>Enter the code</Text>
         <Text style={styles.subtitle}>Sent to {phone}</Text>
@@ -67,15 +74,20 @@ export default function OTPVerifyScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
+
       <View style={styles.actions}>
         <Button label="Verify" onPress={handleVerify} loading={loading} disabled={code.length < CODE_LENGTH} />
       </View>
     </Screen>
+    </TouchableWithoutFeedback>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { justifyContent: 'space-between', paddingVertical: Spacing.xxl },
+  screen: { justifyContent: 'space-between' },
+  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  backBtn: { padding: Spacing.sm },
+  backText: { color: Colors.text, fontSize: FontSize.xl },
   content: { paddingHorizontal: Spacing.lg, gap: Spacing.lg },
   title: { color: Colors.text, fontSize: FontSize.xxl, fontWeight: '700' },
   subtitle: { color: Colors.textSecondary, fontSize: FontSize.md },
@@ -89,5 +101,5 @@ const styles = StyleSheet.create({
   digit: { color: Colors.text, fontSize: FontSize.xl, fontWeight: '600' },
   hiddenInput: { position: 'absolute', opacity: 0, height: 0 },
   error: { color: Colors.error, fontSize: FontSize.sm, textAlign: 'center' },
-  actions: { paddingHorizontal: Spacing.lg },
+  actions: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
 });

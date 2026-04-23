@@ -1,27 +1,25 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useCategoriesStore } from '@/stores/categoriesStore';
 
-export type Category = {
-  category_id: number;
-  name: string;
-  icon_slug: string;
-};
+export type { Category } from '@/stores/categoriesStore';
 
 export function useCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { categories, setCategories } = useCategoriesStore();
 
   useEffect(() => {
+    // Categories are static — only fetch if not already cached
+    if (categories.length > 0) return;
+
     supabase
       .from('dim_category')
       .select('category_id, name, icon_slug')
       .eq('is_active', true)
       .order('name')
       .then(({ data }) => {
-        setCategories((data as Category[]) ?? []);
-        setLoading(false);
+        if (data) setCategories(data as Category[]);
       });
   }, []);
 
-  return { categories, loading };
+  return { categories, loading: categories.length === 0 };
 }

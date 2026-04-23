@@ -4,6 +4,9 @@ import { useRouter } from 'expo-router';
 import { Screen } from '@/components/Screen';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
+import { useProfileStore } from '@/stores/profileStore';
+import { useFeedStore } from '@/stores/feedStore';
+import { useMyQuestsStore } from '@/stores/myQuestsStore';
 import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
 
 type RowProps = {
@@ -29,12 +32,26 @@ function Separator() {
 export default function SettingsScreen() {
   const router = useRouter();
   const { setSession, setHasProfile } = useAuthStore();
+  const clearProfile = useProfileStore(s => s.setProfile);
+  const clearFeed = useFeedStore(s => s.setQuests);
+  const clearMyQuests = useMyQuestsStore(s => s.setQuests);
   const [deleting, setDeleting] = useState(false);
+
+  function clearCaches() {
+    clearProfile(null);
+    clearFeed([]);
+    clearMyQuests([]);
+  }
 
   function handleSignOut() {
     Alert.alert('Sign out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => supabase.auth.signOut() },
+      {
+        text: 'Sign out', style: 'destructive', onPress: () => {
+          clearCaches();
+          supabase.auth.signOut();
+        }
+      },
     ]);
   }
 
@@ -66,6 +83,7 @@ export default function SettingsScreen() {
     const { error } = await supabase.rpc('delete_my_account');
     setDeleting(false);
     if (error) { Alert.alert('Error', error.message); return; }
+    clearCaches();
     setSession(null);
     setHasProfile(false);
     await supabase.auth.signOut().catch(() => {});
@@ -82,11 +100,6 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.sectionTitle}>ACCOUNT</Text>
-        <View style={styles.card}>
-          <Row label="Edit Profile" onPress={() => router.push('/profile/edit-profile')} />
-        </View>
-
         <Text style={styles.sectionTitle}>LEGAL</Text>
         <View style={styles.card}>
           <Row label="Terms of Service" onPress={() => router.push({ pathname: '/profile/legal', params: { type: 'tos' } })} />

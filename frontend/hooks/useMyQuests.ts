@@ -1,26 +1,29 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useMyQuestsStore } from '@/stores/myQuestsStore';
+import { useAuthStore } from '@/stores/authStore';
 import type { Quest } from '@/types/quest';
 
 export function useMyQuests() {
-  const [quests, setQuests] = useState<Quest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { quests, setQuests } = useMyQuestsStore();
+  const [loading, setLoading] = useState(quests.length === 0);
   const [refreshing, setRefreshing] = useState(false);
 
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (quests.length === 0) setLoading(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); setRefreshing(false); return; }
+    // Read user ID from in-memory store — no network round-trip
+    const userId = useAuthStore.getState().session?.user.id;
+    if (!userId) { setLoading(false); setRefreshing(false); return; }
 
     const [{ data: created }, { data: memberships }] = await Promise.all([
-      supabase.from('dim_quest').select('*').eq('creator_id', user.id),
+      supabase.from('dim_quest').select('*').eq('creator_id', userId),
       supabase
         .from('fact_quest_memberships')
         .select('dim_quest(*)')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .is('left_at', null),
     ]);
 
@@ -29,7 +32,6 @@ export function useMyQuests() {
       .map((row: any) => row.dim_quest)
       .filter(Boolean) as Quest[];
 
-    // Merge, deduplicate, sort by date descending
     const seen = new Set(createdQuests.map((q) => q.quest_id));
     const merged = [
       ...createdQuests,
@@ -41,9 +43,7 @@ export function useMyQuests() {
     setRefreshing(false);
   }
 
-  useFocusEffect(
-    useCallback(() => { load(); }, [])
-  );
+  useFocusEffect(useCallback(() => { load(); }, []));
 
   return { quests, loading, refreshing, refresh: () => load(true) };
 }

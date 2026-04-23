@@ -21,6 +21,7 @@ export default function EditProfileScreen() {
   const { profile } = useOwnProfile();
 
   const [firstName, setFirstName] = useState('');
+  const [bio, setBio] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<Gender | ''>('');
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,7 @@ export default function EditProfileScreen() {
   useEffect(() => {
     if (profile) {
       setFirstName(profile.first_name);
+      setBio(profile.bio ?? '');
       setAge(String(profile.age));
       setGender(profile.gender);
     }
@@ -48,7 +50,7 @@ export default function EditProfileScreen() {
 
     const { error: updateError } = await supabase
       .from('dim_user')
-      .update({ first_name: firstName.trim(), age: ageNum, gender })
+      .update({ first_name: firstName.trim(), bio: bio.trim() || null, age: ageNum, gender })
       .eq('user_id', user.id);
 
     setLoading(false);
@@ -68,6 +70,18 @@ export default function EditProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Input label="First name" value={firstName} onChangeText={setFirstName} placeholder="Alex" autoFocus />
+
+        <View>
+          <Input
+            label="Bio (optional)"
+            value={bio}
+            onChangeText={(t) => setBio(t.slice(0, 150))}
+            placeholder="Tell people a bit about yourself…"
+            multiline
+            numberOfLines={2}
+          />
+          <Text style={styles.charCount}>{bio.length}/150</Text>
+        </View>
 
         <Input
           label="Age"
@@ -125,5 +139,6 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   chipText: { color: Colors.textSecondary, fontSize: FontSize.sm },
   chipTextActive: { color: Colors.text, fontWeight: '600' },
+  charCount: { color: Colors.textMuted, fontSize: FontSize.xs, textAlign: 'right', marginTop: 4 },
   error: { color: Colors.error, fontSize: FontSize.sm },
 });

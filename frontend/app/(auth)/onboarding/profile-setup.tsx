@@ -61,11 +61,16 @@ export default function ProfileSetupScreen() {
     if (upsertError) { setError(upsertError.message); return; }
 
     setProfile(firstName.trim(), age, gender);
-    router.push('/(auth)/onboarding/tos-accept');
+    router.push('/(auth)/onboarding/add-photo');
   }
 
   return (
     <Screen>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backText}>←</Text>
+        </TouchableOpacity>
+      </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Tell us about you</Text>
         <Text style={styles.subtitle}>Only your first name and photo are shown to others.</Text>
@@ -105,6 +110,9 @@ export default function ProfileSetupScreen() {
 }
 
 const styles = StyleSheet.create({
+  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  backBtn: { padding: Spacing.sm },
+  backText: { color: Colors.text, fontSize: FontSize.xl },
   content: { padding: Spacing.lg, gap: Spacing.lg },
   title: { color: Colors.text, fontSize: FontSize.xxl, fontWeight: '700' },
   subtitle: { color: Colors.textSecondary, fontSize: FontSize.md },

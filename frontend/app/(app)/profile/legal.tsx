@@ -42,7 +42,7 @@ const CONTENT = {
     sections: [
       {
         heading: 'What We Collect',
-        body: 'We collect your phone number (stored as a one-way hash), first name, age, gender, and any quests you create or join.',
+        body: 'We collect your phone number (stored as a one-way hash), first name, optional profile photo, optional bio, age, gender, and any quests you create or join.',
       },
       {
         heading: 'How We Use It',
@@ -50,7 +50,11 @@ const CONTENT = {
       },
       {
         heading: 'What Others See',
-        body: 'Only your first name and profile photo are visible to other users. Your phone number, age, and gender are never shared publicly.',
+        body: 'When you create a quest, your first name, profile photo, age, gender, and bio are displayed on your quest listing. This information helps other users make an informed decision about joining. Your phone number is never visible to other users.',
+      },
+      {
+        heading: 'Gender-Restricted Quests',
+        body: 'If you create a gender-restricted quest, your gender is used to determine which users can see that quest in their feed. Users whose gender does not match will not see the listing.',
       },
       {
         heading: 'Data Storage',
