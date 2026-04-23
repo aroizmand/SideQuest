@@ -1,18 +1,23 @@
-import { Redirect, Tabs } from 'expo-router';
-import { View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '@/stores/authStore';
-import { Colors } from '@/constants/theme';
+import { Redirect, Tabs } from "expo-router";
+import { View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useAuthStore } from "@/stores/authStore";
+import { Colors } from "@/constants/theme";
 
 function CreateTabIcon() {
   return (
-    <View style={{
-      width: 44, height: 44, borderRadius: 22,
-      backgroundColor: Colors.primary,
-      alignItems: 'center', justifyContent: 'center',
-    }}>
-      <Ionicons name="add" size={24} color={Colors.text} />
+    <View
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: Colors.background,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Ionicons name="add" size={24} color={Colors.primary} />
     </View>
   );
 }
@@ -30,7 +35,7 @@ export default function AppLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.background,
+          backgroundColor: Colors.primaryDark,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
           height: 56 + insets.bottom,
@@ -39,31 +44,39 @@ export default function AppLayout() {
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
       }}
     >
       <Tabs.Screen
         name="feed"
         options={{
-          title: 'Explore',
+          title: "Explore",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'compass' : 'compass-outline'} size={24} color={color} />
+            <Ionicons
+              name={focused ? "compass" : "compass-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="my-quests"
         options={{
-          title: 'Quests',
+          title: "Quests",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'flag' : 'flag-outline'} size={24} color={color} />
+            <Ionicons
+              name={focused ? "flag" : "flag-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="create"
         options={{
-          title: '',
+          title: "",
           tabBarIcon: () => <CreateTabIcon />,
           tabBarLabel: () => null,
         }}
@@ -71,18 +84,26 @@ export default function AppLayout() {
       <Tabs.Screen
         name="messages"
         options={{
-          title: 'Messages',
+          title: "Messages",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'chatbubble' : 'chatbubble-outline'} size={24} color={color} />
+            <Ionicons
+              name={focused ? "chatbubble" : "chatbubble-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Me',
+          title: "Me",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} size={24} color={color} />
+            <Ionicons
+              name={focused ? "person" : "person-outline"}
+              size={24}
+              color={color}
+            />
           ),
         }}
       />

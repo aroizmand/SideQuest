@@ -1,15 +1,15 @@
 export const Colors = {
-  background: '#5EC8D0',   // Flappy Bird sky
-  surface: '#F5E8A8',      // warm sandy paper
-  border: '#2C1B2E',       // very dark retro outline
-  primary: '#F5C300',      // golden yellow — the bird
-  primaryDark: '#C49000',
-  accent: '#4EA82A',       // pipe green
-  text: '#2C1B2E',         // dark ink on light surfaces
-  textSecondary: '#6B3A3A',
-  textMuted: '#9B6A6A',
-  error: '#D04040',
-  success: '#4EA82A',
+  background: "#5EC8D0", // Flappy Bird sky
+  surface: "#F5E8A8", // warm sandy paper
+  border: "#2C1B2E", // very dark retro outline
+  primary: "#ffffff", // golden yellow — the bird
+  primaryDark: "#F5C300",
+  accent: "#4EA82A", // pipe green
+  text: "#2C1B2E", // dark ink on light surfaces
+  textSecondary: "#522e2e",
+  textMuted: "#463131",
+  error: "#D04040",
+  success: "#4EA82A",
 } as const;
 
 export const Spacing = {
