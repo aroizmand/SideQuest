@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams, usePathname } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { UserAvatar } from '@/components/UserAvatar';
@@ -13,15 +14,25 @@ const GENDER_LABELS: Record<string, string> = {
   man: 'Man', woman: 'Woman', non_binary: 'Non-binary', prefer_not_to_say: '—',
 };
 
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <View style={sec.row}>
+      <View style={sec.bar} />
+      <Text style={sec.text}>{children}</Text>
+    </View>
+  );
+}
+
 function ParticipantRow({ p, onPress }: { p: Participant; onPress: () => void }) {
   return (
-    <View style={styles.participantRow}>
-      <UserAvatar name={p.first_name} photo={p.photo_url} size={40} onPress={onPress} />
+    <TouchableOpacity style={styles.participantRow} onPress={onPress} activeOpacity={0.75}>
+      <UserAvatar name={p.first_name} photo={p.photo_url} size={40} />
       <View style={styles.participantInfo}>
         <Text style={styles.participantName}>{p.first_name}</Text>
         <Text style={styles.participantMeta}>{p.age} · {GENDER_LABELS[p.gender] ?? p.gender}</Text>
       </View>
-    </View>
+      <Ionicons name="chevron-forward" size={14} color={Colors.textMuted} />
+    </TouchableOpacity>
   );
 }
 
@@ -30,9 +41,8 @@ export default function QuestDetailScreen() {
   const pathname = usePathname();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { quest, loading, reload } = useQuestDetail(id);
-  const { isMember, isCreator, acting, join, leave } = useQuestMembership(id);
+  const { isMember, isCreator, acting, join, leave, deleteQuest } = useQuestMembership(id);
 
-  // Navigate to a user's profile within the current tab's stack
   const handleUserPress = useCallback((userId: string) => {
     const base = pathname.startsWith('/my-quests') ? '/my-quests' : '/feed';
     router.push({ pathname: `${base}/user/[userId]`, params: { userId } } as any);
@@ -51,10 +61,18 @@ export default function QuestDetailScreen() {
   function handleLeave() {
     Alert.alert('Leave quest', 'Are you sure you want to leave this quest?', [
       { text: 'Cancel', style: 'cancel' },
+      { text: 'Leave', style: 'destructive', onPress: async () => { await leave(); router.back(); } },
+    ]);
+  }
+
+  function handleDelete() {
+    Alert.alert('Delete quest', 'This will permanently delete the quest and remove all participants. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Leave', style: 'destructive', onPress: async () => {
-          await leave();
-          reload();
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          const error = await deleteQuest();
+          if (error) { Alert.alert('Error', error.message); return; }
+          router.back();
         }
       },
     ]);
@@ -62,13 +80,13 @@ export default function QuestDetailScreen() {
 
   if (loading || !quest) {
     return (
-      <Screen>
+      <Screen edges={['top', 'left', 'right']}>
         <View style={styles.loadingHeader}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>←</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.75}>
+            <Ionicons name="arrow-back" size={22} color={Colors.text} />
           </TouchableOpacity>
         </View>
-        <ActivityIndicator style={styles.loader} color={Colors.primary} />
+        <ActivityIndicator style={styles.loader} color={Colors.primaryDark} />
       </Screen>
     );
   }
@@ -80,44 +98,77 @@ export default function QuestDetailScreen() {
   const isFull = quest.spots_left <= 0;
 
   return (
-    <Screen style={styles.screen}>
+    <Screen style={styles.screen} edges={['top', 'left', 'right']}>
+      {/* Golden header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.75}>
+          <Ionicons name="arrow-back" size={22} color={Colors.text} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerEyebrow}>— QUEST DETAILS —</Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>{quest.title}</Text>
+        </View>
+        <View style={styles.backBtn} />
+      </View>
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>←</Text>
-          </TouchableOpacity>
-          <View style={styles.badges}>
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{quest.category}</Text>
+
+        {/* Category + restriction badges */}
+        <View style={styles.badgeRow}>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{quest.category.toUpperCase()}</Text>
+          </View>
+          {isRestricted && (
+            <View style={styles.restrictedBadge}>
+              <Text style={styles.restrictedText}>👥 MY GENDER</Text>
             </View>
-            {isRestricted && (
-              <View style={styles.restrictedBadge}>
-                <Text style={styles.restrictedText}>👥 My gender</Text>
-              </View>
-            )}
+          )}
+          <View style={styles.spotsBadge}>
+            <Text style={styles.spotsText}>
+              {quest.spots_left} SPOT{quest.spots_left !== 1 ? 'S' : ''} LEFT
+            </Text>
           </View>
         </View>
 
-        {/* Title + meta */}
-        <View style={styles.section}>
-          <Text style={styles.title}>{quest.title}</Text>
-          <Text style={styles.meta}>📍 {quest.neighborhood}</Text>
-          <Text style={styles.meta}>🗓 {dateStr} at {timeStr}</Text>
+        {/* Meta info card */}
+        <View style={styles.metaCard}>
+          <View style={styles.metaRow}>
+            <Ionicons name="location" size={16} color={Colors.primaryDark} />
+            <Text style={styles.metaText}>{quest.neighborhood}</Text>
+          </View>
+          <View style={styles.metaDivider} />
+          <View style={styles.metaRow}>
+            <Ionicons name="calendar" size={16} color={Colors.primaryDark} />
+            <Text style={styles.metaText}>{dateStr}</Text>
+          </View>
+          <View style={styles.metaDivider} />
+          <View style={styles.metaRow}>
+            <Ionicons name="time" size={16} color={Colors.primaryDark} />
+            <Text style={styles.metaText}>{timeStr}</Text>
+          </View>
         </View>
 
-        <View style={styles.divider} />
+        {/* About */}
+        <View style={styles.section}>
+          <SectionLabel>BRIEFING</SectionLabel>
+          <View style={styles.descCard}>
+            <Text style={styles.description}>{quest.description}</Text>
+          </View>
+        </View>
 
         {/* Creator */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>HOSTED BY</Text>
-          <View style={styles.creatorRow}>
+          <SectionLabel>HOSTED BY</SectionLabel>
+          <TouchableOpacity
+            style={styles.creatorCard}
+            onPress={() => handleUserPress(quest.creator_id)}
+            activeOpacity={0.75}
+          >
             <UserAvatar
               name={quest.creator_first_name}
               photo={quest.creator_photo_url}
               size={48}
               verified={quest.creator_verified}
-              onPress={() => handleUserPress(quest.creator_id)}
             />
             <View style={styles.creatorInfo}>
               <Text style={styles.creatorName}>{quest.creator_first_name}</Text>
@@ -125,59 +176,50 @@ export default function QuestDetailScreen() {
                 {quest.creator_age} · {GENDER_LABELS[quest.creator_gender] ?? quest.creator_gender}
               </Text>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
+          </TouchableOpacity>
         </View>
-
-        <View style={styles.divider} />
-
-        {/* Description */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>ABOUT</Text>
-          <Text style={styles.description}>{quest.description}</Text>
-        </View>
-
-        <View style={styles.divider} />
 
         {/* Participants */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>
-            ADVENTURERS · {quest.current_count}/{quest.max_participants}
-          </Text>
-          {quest.participants.length === 0 ? (
-            <Text style={styles.emptyParticipants}>No one has joined yet. Be the first!</Text>
-          ) : (
-            quest.participants.map((p) => (
-              <ParticipantRow
-                key={p.user_id}
-                p={p}
-                onPress={() => handleUserPress(p.user_id)}
-              />
-            ))
-          )}
+          <SectionLabel>{`ADVENTURERS · ${quest.current_count}/${quest.max_participants}`}</SectionLabel>
+          <View style={styles.participantsCard}>
+            {quest.participants.length === 0 ? (
+              <Text style={styles.emptyParticipants}>No one has joined yet — be the first!</Text>
+            ) : (
+              quest.participants.map((p, i) => (
+                <View key={p.user_id}>
+                  {i > 0 && <View style={styles.participantDivider} />}
+                  <ParticipantRow p={p} onPress={() => handleUserPress(p.user_id)} />
+                </View>
+              ))
+            )}
+          </View>
         </View>
 
-        <View style={{ height: 110 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       {/* Fixed action bar */}
       <View style={styles.actionBar}>
         {isCreator ? (
-          <Button label="Open Chat" onPress={handleOpenChat} />
+          <View style={styles.actionStack}>
+            <Button label="OPEN CHAT" onPress={handleOpenChat} />
+            <TouchableOpacity onPress={handleDelete} disabled={acting} style={styles.deleteBtn}>
+              <Text style={styles.deleteBtnText}>{acting ? 'DELETING…' : 'DELETE QUEST'}</Text>
+            </TouchableOpacity>
+          </View>
         ) : isMember ? (
-          <View style={styles.memberActions}>
-            <Button label="Open Chat" onPress={handleOpenChat} />
-            <TouchableOpacity onPress={handleLeave} disabled={acting} style={styles.leaveLink}>
-              <Text style={styles.leaveLinkText}>{acting ? 'Leaving…' : 'Leave quest'}</Text>
+          <View style={styles.actionStack}>
+            <Button label="OPEN CHAT" onPress={handleOpenChat} />
+            <TouchableOpacity onPress={handleLeave} disabled={acting} style={styles.deleteBtn}>
+              <Text style={styles.deleteBtnText}>{acting ? 'LEAVING…' : 'LEAVE QUEST'}</Text>
             </TouchableOpacity>
           </View>
         ) : isFull ? (
-          <Button label="Quest Full" onPress={() => {}} disabled variant="ghost" />
+          <Button label="QUEST FULL" onPress={() => {}} disabled variant="ghost" />
         ) : (
-          <Button
-            label={acting ? 'Joining…' : 'Join Quest'}
-            onPress={handleJoin}
-            disabled={acting}
-          />
+          <Button label={acting ? 'JOINING…' : 'JOIN QUEST'} onPress={handleJoin} disabled={acting} />
         )}
       </View>
     </Screen>
@@ -186,59 +228,147 @@ export default function QuestDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  scroll: { paddingBottom: Spacing.lg },
+  scroll: { padding: Spacing.lg, gap: Spacing.lg },
   loadingHeader: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
   loader: { flex: 1 },
 
+  // Golden header
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 4,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.primaryDark,
   },
-  backBtn: { padding: Spacing.sm },
-  backText: { color: Colors.text, fontSize: FontSize.xl, fontWeight: '800' },
-  badges: { flexDirection: 'row', gap: Spacing.xs },
+  backBtn: { width: 36, alignItems: 'flex-start' },
+  headerCenter: { flex: 1, alignItems: 'center', gap: 2 },
+  headerEyebrow: {
+    color: Colors.text,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+    letterSpacing: 2,
+    opacity: 0.7,
+  },
+  headerTitle: {
+    color: Colors.text,
+    fontSize: FontSize.lg,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+
+  // Badges row
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   categoryBadge: {
-    backgroundColor: `${Colors.accent}33`,
-    borderRadius: Radius.sm, borderWidth: 2, borderColor: Colors.accent,
-    paddingHorizontal: Spacing.sm, paddingVertical: 3,
+    backgroundColor: `${Colors.primaryDark}33`,
+    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderColor: Colors.primaryDark,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.sm, paddingVertical: 4,
   },
-  categoryText: { color: Colors.accent, fontSize: FontSize.xs, fontWeight: '800', textTransform: 'uppercase' },
+  categoryText: { color: Colors.text, fontSize: FontSize.xs, fontWeight: '800' },
   restrictedBadge: {
-    backgroundColor: Colors.surface, borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.sm, paddingVertical: 3,
-    borderWidth: 2, borderColor: Colors.border,
+    backgroundColor: `${Colors.primary}33`,
+    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.sm, paddingVertical: 4,
   },
-  restrictedText: { color: Colors.textSecondary, fontSize: FontSize.xs, fontWeight: '700' },
-
-  section: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, gap: Spacing.sm },
-  divider: { height: 2, backgroundColor: Colors.border },
-
-  sectionLabel: {
-    color: Colors.textMuted, fontSize: FontSize.xs, fontWeight: '800',
-    textTransform: 'uppercase', letterSpacing: 1.5,
+  restrictedText: { color: Colors.text, fontSize: FontSize.xs, fontWeight: '800' },
+  spotsBadge: {
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.sm, paddingVertical: 4,
   },
-  title: { color: Colors.text, fontSize: FontSize.xl, fontWeight: '800', lineHeight: 30 },
-  meta: { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' },
+  spotsText: { color: Colors.textMuted, fontSize: FontSize.xs, fontWeight: '800' },
+
+  // Meta card
+  metaCard: {
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+  },
+  metaRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,
+    paddingHorizontal: Spacing.md, paddingVertical: 12,
+  },
+  metaDivider: { height: 2, backgroundColor: Colors.border },
+  metaText: { color: Colors.text, fontSize: FontSize.sm, fontWeight: '700' },
+
+  // Sections
+  section: { gap: Spacing.sm },
+
+  descCard: {
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
   description: { color: Colors.textSecondary, fontSize: FontSize.md, lineHeight: 24 },
 
-  creatorRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  creatorInfo: { gap: 2 },
+  creatorCard: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  creatorInfo: { flex: 1, gap: 2 },
   creatorName: { color: Colors.text, fontSize: FontSize.md, fontWeight: '800' },
   creatorMeta: { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: '600' },
 
-  participantRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.xs },
-  participantInfo: { gap: 2 },
+  participantsCard: {
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    overflow: 'hidden',
+  },
+  participantRow: {
+    flexDirection: 'row', alignItems: 'center', gap: Spacing.md,
+    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
+  },
+  participantDivider: { height: 2, backgroundColor: Colors.border },
+  participantInfo: { flex: 1, gap: 2 },
   participantName: { color: Colors.text, fontSize: FontSize.sm, fontWeight: '700' },
   participantMeta: { color: Colors.textSecondary, fontSize: FontSize.xs, fontWeight: '600' },
-  emptyParticipants: { color: Colors.textMuted, fontSize: FontSize.sm, fontStyle: 'italic' },
+  emptyParticipants: {
+    color: Colors.textMuted, fontSize: FontSize.sm, fontStyle: 'italic',
+    padding: Spacing.md, textAlign: 'center',
+  },
 
+  // Action bar
   actionBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: Colors.background,
-    borderTopWidth: 2, borderTopColor: Colors.border,
+    borderTopWidth: 4, borderTopColor: Colors.border,
     padding: Spacing.lg,
+    paddingBottom: Spacing.lg,
   },
-  memberActions: { gap: Spacing.sm },
-  leaveLink: { alignItems: 'center', paddingVertical: Spacing.xs },
-  leaveLinkText: { color: Colors.error, fontSize: FontSize.sm, fontWeight: '700' },
+  actionStack: { gap: Spacing.sm },
+  deleteBtn: {
+    alignItems: 'center',
+    paddingVertical: Spacing.sm + 2,
+    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderColor: Colors.error,
+    borderRadius: Radius.sm,
+    backgroundColor: `${Colors.error}18`,
+  },
+  deleteBtnText: { color: Colors.error, fontSize: FontSize.sm, fontWeight: '800', letterSpacing: 1 },
+});
+
+const sec = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginBottom: 2 },
+  bar: { width: 4, height: 14, backgroundColor: Colors.primaryDark, borderRadius: 0 },
+  text: {
+    color: Colors.text, fontSize: FontSize.xs, fontWeight: '900',
+    letterSpacing: 2, textTransform: 'uppercase',
+  },
 });

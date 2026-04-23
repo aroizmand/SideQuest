@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
@@ -16,6 +17,15 @@ const GENDERS: { label: string; value: Gender }[] = [
   { label: 'Prefer not to say', value: 'prefer_not_to_say' },
 ];
 
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <View style={sec.row}>
+      <View style={sec.bar} />
+      <Text style={sec.text}>{children}</Text>
+    </View>
+  );
+}
+
 export default function EditProfileScreen() {
   const router = useRouter();
   const { profile } = useOwnProfile();
@@ -27,7 +37,6 @@ export default function EditProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Pre-fill once profile loads
   useEffect(() => {
     if (profile) {
       setFirstName(profile.first_name);
@@ -59,21 +68,29 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <Screen>
+    <Screen edges={['top', 'left', 'right']}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.75}>
+          <Ionicons name="arrow-back" size={22} color={Colors.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>Edit Profile</Text>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerEyebrow}>— YOUR INFO —</Text>
+          <Text style={styles.headerTitle}>EDIT PROFILE</Text>
+        </View>
         <View style={styles.backBtn} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Input label="First name" value={firstName} onChangeText={setFirstName} placeholder="Alex" autoFocus />
 
-        <View>
+        <View style={styles.section}>
+          <SectionLabel>FIRST NAME</SectionLabel>
+          <Input value={firstName} onChangeText={setFirstName} placeholder="Alex" autoFocus />
+        </View>
+
+        <View style={styles.section}>
+          <SectionLabel>BIO</SectionLabel>
           <Input
-            label="Bio (optional)"
             value={bio}
             onChangeText={(t) => setBio(t.slice(0, 150))}
             placeholder="Tell people a bit about yourself…"
@@ -83,39 +100,48 @@ export default function EditProfileScreen() {
           <Text style={styles.charCount}>{bio.length}/150</Text>
         </View>
 
-        <Input
-          label="Age"
-          value={age}
-          onChangeText={(v) => setAge(v.replace(/\D/g, ''))}
-          placeholder="25"
-          keyboardType="number-pad"
-        />
+        <View style={styles.section}>
+          <SectionLabel>AGE</SectionLabel>
+          <Input
+            value={age}
+            onChangeText={(v) => setAge(v.replace(/\D/g, ''))}
+            placeholder="25"
+            keyboardType="number-pad"
+          />
+        </View>
 
-        <View>
-          <Text style={styles.label}>I identify as</Text>
-          <View style={styles.genderGrid}>
+        <View style={styles.section}>
+          <SectionLabel>I IDENTIFY AS</SectionLabel>
+          <View style={styles.chipGrid}>
             {GENDERS.map((g) => (
               <TouchableOpacity
                 key={g.value}
                 style={[styles.chip, gender === g.value && styles.chipActive]}
                 onPress={() => setGender(g.value)}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.chipText, gender === g.value && styles.chipTextActive]}>
-                  {g.label}
+                  {g.label.toUpperCase()}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
         <Button
-          label="Save Changes"
+          label="SAVE CHANGES"
           onPress={handleSave}
           loading={loading}
           disabled={!firstName || !age || !gender}
         />
+
+        <View style={{ height: Spacing.lg }} />
       </ScrollView>
     </Screen>
   );
@@ -123,22 +149,93 @@ export default function EditProfileScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 4,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.primaryDark,
   },
-  backBtn: { width: 36, padding: Spacing.xs },
-  backText: { color: Colors.text, fontSize: FontSize.xl },
-  title: { color: Colors.text, fontSize: FontSize.lg, fontWeight: '700' },
+  backBtn: { width: 36, alignItems: 'flex-start' },
+  headerCenter: { flex: 1, alignItems: 'center', gap: 2 },
+  headerEyebrow: {
+    color: Colors.text,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+    letterSpacing: 2,
+    opacity: 0.7,
+  },
+  headerTitle: {
+    color: Colors.text,
+    fontSize: FontSize.xxl,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+
   content: { padding: Spacing.lg, gap: Spacing.lg },
-  label: { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: '500', marginBottom: Spacing.sm },
-  genderGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
-  chip: {
-    paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm,
-    borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.border,
+  section: { gap: Spacing.sm },
+  charCount: {
+    color: Colors.textMuted,
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    textAlign: 'right',
+    marginTop: 2,
   },
-  chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  chipText: { color: Colors.textSecondary, fontSize: FontSize.sm },
-  chipTextActive: { color: Colors.text, fontWeight: '600' },
-  charCount: { color: Colors.textMuted, fontSize: FontSize.xs, textAlign: 'right', marginTop: 4 },
-  error: { color: Colors.error, fontSize: FontSize.sm },
+
+  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+  },
+  chipActive: { backgroundColor: Colors.primaryDark },
+  chipText: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.xs,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  chipTextActive: { color: Colors.text },
+
+  errorBox: {
+    backgroundColor: `${Colors.error}22`,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.error,
+    borderRadius: Radius.sm,
+    padding: Spacing.md,
+  },
+  errorText: { color: Colors.error, fontSize: FontSize.sm, fontWeight: '700' },
+});
+
+const sec = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: 2,
+  },
+  bar: {
+    width: 4,
+    height: 14,
+    backgroundColor: Colors.primaryDark,
+    borderRadius: 0,
+  },
+  text: {
+    color: Colors.text,
+    fontSize: FontSize.xs,
+    fontWeight: '900',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
 });

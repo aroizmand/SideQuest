@@ -82,5 +82,17 @@ export function useQuestMembership(questId: string) {
     return error ?? null;
   }
 
-  return { isMember, isCreator, loading, acting, join, leave };
+  async function deleteQuest() {
+    if (!userId) return null;
+    setActing(true);
+    const { error } = await supabase
+      .from('dim_quest')
+      .delete()
+      .eq('quest_id', questId)
+      .eq('creator_id', userId);
+    setActing(false);
+    return error ?? null;
+  }
+
+  return { isMember, isCreator, loading, acting, join, leave, deleteQuest };
 }

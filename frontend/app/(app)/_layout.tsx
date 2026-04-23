@@ -1,24 +1,86 @@
-import { Redirect, Tabs } from "expo-router";
-import { View } from "react-native";
+import { Redirect, Tabs, usePathname } from "expo-router";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/stores/authStore";
 import { Colors } from "@/constants/theme";
 
-function CreateTabIcon() {
+function TabButton({
+  onPress,
+  iconName,
+  label,
+  routeName,
+}: {
+  onPress: () => void;
+  iconName: string;
+  label: string;
+  routeName: string;
+}) {
+  const pathname = usePathname();
+  const focused =
+    pathname === `/${routeName}` || pathname.startsWith(`/${routeName}/`);
+  const color = focused ? Colors.cream : Colors.cream;
+
   return (
-    <View
-      style={{
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        backgroundColor: Colors.background,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
     >
-      <Ionicons name="add" size={24} color={Colors.primary} />
-    </View>
+      <View
+        style={{
+          alignItems: "center",
+          justifyContent: "center",
+          paddingHorizontal: 10,
+          paddingVertical: 5,
+          borderRadius: 4,
+          borderTopWidth: focused ? 2 : 0,
+          borderLeftWidth: focused ? 2 : 0,
+          borderBottomWidth: focused ? 4 : 0,
+          borderRightWidth: focused ? 4 : 0,
+          borderColor: Colors.border,
+          backgroundColor: focused ? Colors.background : "transparent",
+          gap: 2,
+          minWidth: 56,
+        }}
+      >
+        <Ionicons name={iconName as any} size={20} color={color} />
+        <Text
+          style={{ color, fontSize: 10, fontWeight: focused ? "700" : "500" }}
+        >
+          {label}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+function CreateTabButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+    >
+      <View
+        style={{
+          width: 58,
+          height: 58,
+          marginTop: -28,
+          borderRadius: 4,
+          backgroundColor: Colors.surface,
+          borderTopWidth: 2,
+          borderLeftWidth: 2,
+          borderBottomWidth: 5,
+          borderRightWidth: 5,
+          borderColor: Colors.border,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons name="add" size={28} color={Colors.text} />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -38,24 +100,22 @@ export default function AppLayout() {
           backgroundColor: Colors.primaryDark,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          height: 56 + insets.bottom,
+          height: 64 + insets.bottom,
           paddingBottom: insets.bottom,
-          paddingTop: 8,
         },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textMuted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
+        tabBarShowLabel: false,
       }}
     >
       <Tabs.Screen
         name="feed"
         options={{
           title: "Explore",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "compass" : "compass-outline"}
-              size={24}
-              color={color}
+          tabBarButton: ({ onPress }) => (
+            <TabButton
+              onPress={onPress as any}
+              iconName="compass"
+              label="Explore"
+              routeName="feed"
             />
           ),
         }}
@@ -64,11 +124,12 @@ export default function AppLayout() {
         name="my-quests"
         options={{
           title: "Quests",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "flag" : "flag-outline"}
-              size={24}
-              color={color}
+          tabBarButton: ({ onPress }) => (
+            <TabButton
+              onPress={onPress as any}
+              iconName="flag"
+              label="Quests"
+              routeName="my-quests"
             />
           ),
         }}
@@ -77,19 +138,21 @@ export default function AppLayout() {
         name="create"
         options={{
           title: "",
-          tabBarIcon: () => <CreateTabIcon />,
-          tabBarLabel: () => null,
+          tabBarButton: ({ onPress }) => (
+            <CreateTabButton onPress={onPress as any} />
+          ),
         }}
       />
       <Tabs.Screen
         name="messages"
         options={{
           title: "Messages",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "chatbubble" : "chatbubble-outline"}
-              size={24}
-              color={color}
+          tabBarButton: ({ onPress }) => (
+            <TabButton
+              onPress={onPress as any}
+              iconName="chatbubble"
+              label="Chats"
+              routeName="messages"
             />
           ),
         }}
@@ -98,11 +161,12 @@ export default function AppLayout() {
         name="profile"
         options={{
           title: "Me",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={24}
-              color={color}
+          tabBarButton: ({ onPress }) => (
+            <TabButton
+              onPress={onPress as any}
+              iconName="person"
+              label="Me"
+              routeName="profile"
             />
           ),
         }}

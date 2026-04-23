@@ -1,6 +1,7 @@
 export const Colors = {
   background: "#5EC8D0", // Flappy Bird sky
   surface: "#F5E8A8", // warm sandy paper
+  cream: "#fcf1de", // near-white with warm cream tint
   border: "#2C1B2E", // very dark retro outline
   primary: "#ffffff", // golden yellow — the bird
   primaryDark: "#F5C300",

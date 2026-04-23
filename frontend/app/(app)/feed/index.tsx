@@ -88,6 +88,7 @@ function QuestCard({
       </Text>
 
       {/* Participants horizontal scroll */}
+
       <View>
         <Text style={styles.participantsLabel}>
           {quest.participants.length} joined
@@ -127,7 +128,8 @@ export default function FeedScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.heading}>Explore</Text>
+        <Text style={styles.headerEyebrow}>— SEE WHAT'S OUT THERE —</Text>
+        <Text style={styles.heading}>EXPLORE</Text>
       </View>
       {loading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />
@@ -165,9 +167,26 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
-    paddingBottom: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 4,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.primaryDark,
+    alignItems: "center",
+    gap: 2,
   },
-  heading: { color: Colors.text, fontSize: FontSize.xxl, fontWeight: "800" },
+  headerEyebrow: {
+    color: Colors.text,
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    letterSpacing: 2,
+    opacity: 0.7,
+  },
+  heading: {
+    color: Colors.text,
+    fontSize: FontSize.xxl,
+    fontWeight: "900",
+    letterSpacing: 2,
+  },
   loader: { flex: 1 },
   list: { padding: Spacing.lg, gap: Spacing.md },
   empty: {
