@@ -10,9 +10,6 @@ import { useQuestMembership } from '@/hooks/useQuestMembership';
 import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
 import type { Participant } from '@/hooks/useQuestDetail';
 
-const GENDER_LABELS: Record<string, string> = {
-  man: 'Man', woman: 'Woman', non_binary: 'Non-binary', prefer_not_to_say: '—',
-};
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -22,6 +19,9 @@ function SectionLabel({ children }: { children: string }) {
     </View>
   );
 }
+const GENDER_LABELS: Record<string, string> = {
+  man: 'Man', woman: 'Woman', non_binary: 'Non-binary', prefer_not_to_say: '—',
+};
 
 function ParticipantRow({ p, onPress }: { p: Participant; onPress: () => void }) {
   return (
@@ -173,7 +173,9 @@ export default function QuestDetailScreen() {
             <View style={styles.creatorInfo}>
               <Text style={styles.creatorName}>{quest.creator_first_name}</Text>
               <Text style={styles.creatorMeta}>
-                {quest.creator_age} · {GENDER_LABELS[quest.creator_gender] ?? quest.creator_gender}
+                {quest.creator_rating_avg != null
+                  ? `★ ${quest.creator_rating_avg.toFixed(1)}`
+                  : 'No ratings yet'}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />

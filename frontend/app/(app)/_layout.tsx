@@ -19,7 +19,7 @@ function TabButton({
   const pathname = usePathname();
   const focused =
     pathname === `/${routeName}` || pathname.startsWith(`/${routeName}/`);
-  const color = focused ? Colors.cream : Colors.cream;
+  const color = focused ? Colors.text : Colors.cream;
 
   return (
     <TouchableOpacity

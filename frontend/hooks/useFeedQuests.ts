@@ -31,9 +31,16 @@ export function useFeedQuests() {
     ]);
 
     const all = (data as FeedQuest[]) ?? [];
-    const visible = userGender
-      ? all.filter(q => q.gender_restriction === 'all' || q.gender_restriction === userGender)
-      : all.filter(q => q.gender_restriction === 'all');
+    const allowedRestriction: Record<string, string> = {
+      man: 'men_only',
+      woman: 'women_only',
+      non_binary: 'non_binary_welcome',
+    };
+    const myRestriction = userGender ? allowedRestriction[userGender] : null;
+    const visible = all.filter(q =>
+      q.gender_restriction === 'all' ||
+      (myRestriction != null && q.gender_restriction === myRestriction)
+    );
 
     // Batch-fetch participants for all visible quests (2 extra queries for the whole feed)
     const questIds = visible.map(q => q.quest_id);
@@ -51,7 +58,7 @@ export function useFeedQuests() {
 
       if (participantIds.length > 0) {
         const { data: profiles } = await supabase
-          .from('dim_user')
+          .from('v_user_public_profile')
           .select('user_id, first_name, photo_url, age')
           .in('user_id', participantIds);
 

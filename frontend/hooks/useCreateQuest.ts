@@ -14,13 +14,16 @@ export type CreateQuestInput = {
   age_max?: number;
 };
 
-// Returns the date_id integer key (YYYYMMDD) for a given ISO date string
-function toDateId(isoString: string): number {
+// Ensures a dim_date row exists for the given ISO date string and returns its date_id
+async function ensureDateId(isoString: string): Promise<number | null> {
   const d = new Date(isoString);
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return parseInt(`${y}${m}${day}`, 10);
+  const target = `${y}-${m}-${day}`;
+  const { data, error } = await supabase.rpc('ensure_date_id', { target_date: target });
+  if (error) return null;
+  return data as number;
 }
 
 // Find existing location by neighborhood name, or create one with Calgary defaults
@@ -34,7 +37,7 @@ async function resolveLocationId(neighborhood: string): Promise<number | null> {
 
   if (existing) return existing.location_id;
 
-  // Insert with Calgary city-centre defaults — replace with geocoding later
+  // TODO: geocode the neighborhood; until then every new location stacks on Calgary city-centre
   const { data: created, error } = await supabase
     .from('dim_location')
     .insert({
@@ -51,7 +54,7 @@ async function resolveLocationId(neighborhood: string): Promise<number | null> {
     .select('location_id')
     .single();
 
-  if (error) { console.error(error); return null; }
+  if (error) return null;
   return created.location_id;
 }
 
@@ -69,7 +72,8 @@ export function useCreateQuest() {
     const location_id = await resolveLocationId(input.neighborhood);
     if (!location_id) { setLoading(false); setError('Could not resolve location.'); return null; }
 
-    const date_id = toDateId(input.starts_at);
+    const date_id = await ensureDateId(input.starts_at);
+    if (!date_id) { setLoading(false); setError('Could not resolve date.'); return null; }
 
     const { data, error: insertError } = await supabase
       .from('dim_quest')
@@ -91,7 +95,7 @@ export function useCreateQuest() {
       .single();
 
     setLoading(false);
-    if (insertError) { console.error(insertError); setError(insertError.message); return null; }
+    if (insertError) { setError(insertError.message); return null; }
     return data as Quest;
   }
 

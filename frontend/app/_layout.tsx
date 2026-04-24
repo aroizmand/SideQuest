@@ -17,20 +17,27 @@ export default function RootLayout() {
   const { setSession, setInitialized, setHasProfile } = useAuthStore();
 
   useEffect(() => {
+    let lastCheckedUserId: string | null = null;
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       const hasProfile = session ? await checkHasProfile(session.user.id) : false;
+      lastCheckedUserId = session?.user.id ?? null;
       setInitialized(hasProfile);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-      if (session) {
-        const hasProfile = await checkHasProfile(session.user.id);
-        setHasProfile(hasProfile);
-      } else {
+      if (!session) {
+        lastCheckedUserId = null;
         setHasProfile(false);
+        return;
       }
+      // Only re-check profile if the user actually changed (skip TOKEN_REFRESHED, etc.)
+      if (session.user.id === lastCheckedUserId) return;
+      lastCheckedUserId = session.user.id;
+      const hasProfile = await checkHasProfile(session.user.id);
+      setHasProfile(hasProfile);
     });
 
     return () => subscription.unsubscribe();

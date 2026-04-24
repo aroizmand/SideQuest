@@ -16,7 +16,7 @@ export function useQuestChat(questId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const myUserId = useAuthStore.getState().session?.user.id ?? '';
+  const myUserId = useAuthStore.getState().session?.user.id ?? null;
   // Cache sender profiles so we don't refetch on every realtime event
   const senderCache = useRef<Record<string, { sender_name: string; sender_photo: string | null }>>({});
 
@@ -31,7 +31,7 @@ export function useQuestChat(questId: string) {
     }
 
     const { data } = await supabase
-      .from('dim_user')
+      .from('v_user_public_profile')
       .select('first_name, photo_url')
       .eq('user_id', userId)
       .single();
@@ -94,16 +94,19 @@ export function useQuestChat(questId: string) {
 
   async function sendMessage(body: string): Promise<boolean> {
     const trimmed = body.trim();
-    if (!trimmed || !myUserId) return false;
+    if (!trimmed) return false;
+    // Re-read session at send time — it may have expired since mount
+    const currentUserId = useAuthStore.getState().session?.user.id;
+    if (!currentUserId) return false;
     setSending(true);
     const { error } = await supabase.from('quest_messages').insert({
       quest_id: questId,
-      user_id: myUserId,
+      user_id: currentUserId,
       body: trimmed,
     });
     setSending(false);
     return !error;
   }
 
-  return { messages, loading, sending, sendMessage, myUserId };
+  return { messages, loading, sending, sendMessage, myUserId: myUserId ?? '' };
 }

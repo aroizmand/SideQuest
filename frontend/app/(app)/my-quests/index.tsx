@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,51 +9,116 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "@/components/Screen";
 import { useMyQuests } from "@/hooks/useMyQuests";
 import { Colors, FontSize, Spacing, Radius } from "@/constants/theme";
-import type { Quest } from "@/types/quest";
+import type { MyQuest } from "@/hooks/useMyQuests";
 
-function QuestRow({ quest, onPress }: { quest: Quest; onPress: () => void }) {
-  const time = new Date(quest.starts_at).toLocaleDateString([], {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
+type Tab = "hosting" | "joined" | "past";
+
+function QuestRow({ quest, onPress }: { quest: MyQuest; onPress: () => void }) {
+  const date = new Date(quest.starts_at);
+  const dateStr = date.toLocaleDateString([], {
+    weekday: "short", month: "short", day: "numeric",
   });
-  const isActive = quest.status === "active";
+  const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.75}>
       <View style={styles.rowInfo}>
-        <Text style={styles.rowTitle}>{quest.title}</Text>
-        <Text style={styles.rowMeta}>{time}</Text>
+        <View style={styles.rowTopLine}>
+          <Text style={styles.rowTitle} numberOfLines={1}>{quest.title}</Text>
+          {quest.is_creator && (
+            <View style={styles.hostBadge}>
+              <Text style={styles.hostBadgeText}>HOST</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.rowMeta}>
+          {dateStr} · {timeStr}
+        </Text>
+        <Text style={styles.rowSubMeta}>
+          {quest.current_count}/{quest.max_participants} adventurers
+        </Text>
       </View>
-      <View
-        style={[
-          styles.badge,
-          isActive ? styles.badgeActive : styles.badgePending,
-        ]}
-      >
-        <Text style={styles.badgeText}>{quest.status.replace("_", " ")}</Text>
-      </View>
+      <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
     </TouchableOpacity>
+  );
+}
+
+function TabBar({ tab, onChange, counts }: {
+  tab: Tab;
+  onChange: (t: Tab) => void;
+  counts: Record<Tab, number>;
+}) {
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "hosting", label: "HOSTING" },
+    { id: "joined",  label: "JOINED"  },
+    { id: "past",    label: "PAST"    },
+  ];
+  return (
+    <View style={styles.tabBar}>
+      {tabs.map((t) => {
+        const active = tab === t.id;
+        return (
+          <TouchableOpacity
+            key={t.id}
+            style={[styles.tabBtn, active && styles.tabBtnActive]}
+            onPress={() => onChange(t.id)}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.tabText, active && styles.tabTextActive]}>
+              {t.label} {counts[t.id] > 0 ? `· ${counts[t.id]}` : ""}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
   );
 }
 
 export default function MyQuestsScreen() {
   const router = useRouter();
   const { quests, loading, refreshing, refresh } = useMyQuests();
+  const [tab, setTab] = useState<Tab>("hosting");
+
+  const { hosting, joined, past, counts } = useMemo(() => {
+    const hosting: MyQuest[] = [];
+    const joined:  MyQuest[] = [];
+    const past:    MyQuest[] = [];
+    for (const q of quests) {
+      if (q.is_past) past.push(q);
+      else if (q.is_creator) hosting.push(q);
+      else joined.push(q);
+    }
+    return {
+      hosting, joined, past,
+      counts: { hosting: hosting.length, joined: joined.length, past: past.length },
+    };
+  }, [quests]);
+
+  const visible = tab === "hosting" ? hosting : tab === "joined" ? joined : past;
+
+  const emptyText =
+    tab === "hosting" ? "You haven't created any quests yet." :
+    tab === "joined"  ? "You haven't joined any quests yet. Go explore!" :
+                        "No past quests yet.";
 
   return (
-    <Screen>
+    <Screen edges={["top", "left", "right"]}>
       <View style={styles.header}>
         <Text style={styles.headerEyebrow}>— YOUR ADVENTURES —</Text>
-        <Text style={styles.heading}>UPCOMING QUESTS</Text>
+        <Text style={styles.heading}>MY QUESTS</Text>
       </View>
+
+      <TabBar tab={tab} onChange={setTab} counts={counts} />
+
       {loading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />
       ) : (
         <FlatList
-          data={quests}
+          data={visible}
           keyExtractor={(q) => q.quest_id}
           renderItem={({ item }) => (
             <QuestRow
@@ -61,11 +127,7 @@ export default function MyQuestsScreen() {
             />
           )}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={
-            <Text style={styles.empty}>
-              Nothing here yet. Go explore and join a quest! 🧭
-            </Text>
-          }
+          ListEmptyComponent={<Text style={styles.empty}>{emptyText}</Text>}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -91,29 +153,48 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   headerEyebrow: {
-    color: Colors.text,
-    fontSize: FontSize.xs,
-    fontWeight: "800",
-    letterSpacing: 2,
-    opacity: 0.7,
+    color: Colors.text, fontSize: FontSize.xs, fontWeight: "800", letterSpacing: 2, opacity: 0.7,
   },
   heading: {
-    color: Colors.text,
-    fontSize: FontSize.xxl,
-    fontWeight: "900",
-    letterSpacing: 2,
+    color: Colors.text, fontSize: FontSize.xxl, fontWeight: "900", letterSpacing: 2,
   },
+
+  tabBar: {
+    flexDirection: "row",
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    alignItems: "center",
+  },
+  tabBtnActive: { backgroundColor: Colors.primaryDark },
+  tabText: { color: Colors.textSecondary, fontSize: FontSize.xs, fontWeight: "800", letterSpacing: 0.5 },
+  tabTextActive: { color: Colors.text },
+
   loader: { flex: 1 },
   list: { padding: Spacing.lg, gap: Spacing.sm },
   empty: {
     color: Colors.textSecondary,
     textAlign: "center",
     marginTop: Spacing.xxl,
+    fontWeight: "600",
   },
+
   row: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: Spacing.sm,
     backgroundColor: Colors.surface,
     borderRadius: Radius.md,
     padding: Spacing.md,
@@ -124,14 +205,26 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   rowInfo: { flex: 1, gap: 2 },
-  rowTitle: { color: Colors.text, fontSize: FontSize.md, fontWeight: "600" },
-  rowMeta: { color: Colors.textSecondary, fontSize: FontSize.sm },
-  badge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
+  rowTopLine: { flexDirection: "row", alignItems: "center", gap: Spacing.xs },
+  rowTitle: { flex: 1, color: Colors.text, fontSize: FontSize.md, fontWeight: "800" },
+  rowMeta: { color: Colors.textSecondary, fontSize: FontSize.sm, fontWeight: "600" },
+  rowSubMeta: { color: Colors.textMuted, fontSize: FontSize.xs, fontWeight: "600" },
+
+  hostBadge: {
+    backgroundColor: `${Colors.primaryDark}33`,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderColor: Colors.primaryDark,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.xs + 2,
+    paddingVertical: 2,
   },
-  badgeActive: { backgroundColor: `${Colors.success}33` },
-  badgePending: { backgroundColor: `${Colors.primary}33` },
-  badgeText: { color: Colors.text, fontSize: FontSize.xs, fontWeight: "600" },
+  hostBadgeText: {
+    color: Colors.text,
+    fontSize: 9,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+  },
 });

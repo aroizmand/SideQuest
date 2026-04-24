@@ -74,7 +74,7 @@ export default function MessagesScreen() {
   const { chats, loading } = useQuestChats();
 
   return (
-    <Screen>
+    <Screen edges={["top", "left", "right"]}>
       <View style={styles.header}>
         <Text style={styles.headerEyebrow}>— GROUP CHATS —</Text>
         <Text style={styles.heading}>MESSAGES</Text>

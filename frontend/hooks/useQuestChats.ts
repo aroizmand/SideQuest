@@ -65,7 +65,7 @@ export function useQuestChats() {
 
     const senderIds = [...new Set([...lastMsg.values()].map(m => m.user_id))];
     const { data: senders } = senderIds.length > 0
-      ? await supabase.from('dim_user').select('user_id, first_name').in('user_id', senderIds)
+      ? await supabase.from('v_user_public_profile').select('user_id, first_name').in('user_id', senderIds)
       : { data: [] };
     const senderMap = new Map((senders ?? []).map(s => [s.user_id, s.first_name]));
 

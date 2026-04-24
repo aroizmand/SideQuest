@@ -55,8 +55,13 @@ export function useQuestMembership(questId: string) {
         .eq('quest_id', questId)
         .eq('user_id', userId));
     } else {
-      const d = new Date();
-      const dateId = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+      const today = new Date();
+      const target = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const { data: dateId, error: dateErr } = await supabase.rpc('ensure_date_id', { target_date: target });
+      if (dateErr || !dateId) {
+        setActing(false);
+        return dateErr ?? new Error('Could not resolve date');
+      }
       ({ error } = await supabase
         .from('fact_quest_memberships')
         .insert({ quest_id: questId, user_id: userId, date_id: dateId }));

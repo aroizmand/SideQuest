@@ -119,7 +119,9 @@ export default function CreateScreen() {
       starts_at: startsAt.toISOString(),
       max_participants: maxCount,
       category_id: categoryId,
-      gender_restriction: myGenderOnly && myGender ? myGender : "all",
+      gender_restriction: myGenderOnly && myGender
+        ? ({ man: 'men_only', woman: 'women_only', non_binary: 'non_binary_welcome' } as Record<string, string>)[myGender] ?? 'all'
+        : 'all',
     });
 
     if (quest) {

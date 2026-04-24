@@ -5,6 +5,8 @@ import { useMyQuestsStore } from '@/stores/myQuestsStore';
 import { useAuthStore } from '@/stores/authStore';
 import type { Quest } from '@/types/quest';
 
+export type MyQuest = Quest & { is_creator: boolean; is_past: boolean };
+
 export function useMyQuests() {
   const { quests, setQuests } = useMyQuestsStore();
   const [loading, setLoading] = useState(quests.length === 0);
@@ -14,7 +16,6 @@ export function useMyQuests() {
     if (isRefresh) setRefreshing(true);
     else if (quests.length === 0) setLoading(true);
 
-    // Read user ID from in-memory store — no network round-trip
     const userId = useAuthStore.getState().session?.user.id;
     if (!userId) { setLoading(false); setRefreshing(false); return; }
 
@@ -27,16 +28,29 @@ export function useMyQuests() {
         .is('left_at', null),
     ]);
 
-    const createdQuests = (created ?? []) as Quest[];
-    const joinedQuests = (memberships ?? [])
-      .map((row: any) => row.dim_quest)
-      .filter(Boolean) as Quest[];
+    const now = Date.now();
+    const createdMap = new Map<string, MyQuest>();
+    (created ?? []).forEach((q: any) => {
+      createdMap.set(q.quest_id, {
+        ...q,
+        is_creator: true,
+        is_past: new Date(q.starts_at).getTime() < now,
+      });
+    });
 
-    const seen = new Set(createdQuests.map((q) => q.quest_id));
-    const merged = [
-      ...createdQuests,
-      ...joinedQuests.filter((q) => !seen.has(q.quest_id)),
-    ].sort((a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime());
+    const joined: MyQuest[] = (memberships ?? [])
+      .map((row: any) => row.dim_quest)
+      .filter(Boolean)
+      .filter((q: any) => !createdMap.has(q.quest_id))
+      .map((q: any) => ({
+        ...q,
+        is_creator: false,
+        is_past: new Date(q.starts_at).getTime() < now,
+      }));
+
+    const merged: MyQuest[] = [...createdMap.values(), ...joined].sort(
+      (a, b) => new Date(b.starts_at).getTime() - new Date(a.starts_at).getTime()
+    );
 
     setQuests(merged);
     setLoading(false);
@@ -45,5 +59,5 @@ export function useMyQuests() {
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
-  return { quests, loading, refreshing, refresh: () => load(true) };
+  return { quests: quests as MyQuest[], loading, refreshing, refresh: () => load(true) };
 }

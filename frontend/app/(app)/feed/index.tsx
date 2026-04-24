@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -5,15 +6,16 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  ScrollView,
+  TextInput,
   TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "@/components/Screen";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useFeedQuests } from "@/hooks/useFeedQuests";
 import { Colors, FontSize, Spacing, Radius } from "@/constants/theme";
-import type { FeedQuest, ParticipantPreview } from "@/types/quest";
+import type { FeedQuest } from "@/types/quest";
 
 const GENDER_LABELS: Record<string, string> = {
   man: "Man",
@@ -21,26 +23,6 @@ const GENDER_LABELS: Record<string, string> = {
   non_binary: "Non-binary",
   prefer_not_to_say: "—",
 };
-
-function ParticipantChip({
-  p,
-  onPress,
-}: {
-  p: ParticipantPreview;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={styles.participantChip}
-      onPress={onPress}
-      activeOpacity={0.75}
-    >
-      <UserAvatar name={p.first_name} photo={p.photo_url} size={36} />
-      <Text style={styles.participantName}>{p.first_name}</Text>
-      <Text style={styles.participantAge}>{p.age}</Text>
-    </TouchableOpacity>
-  );
-}
 
 function QuestCard({
   quest,
@@ -64,7 +46,6 @@ function QuestCard({
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
-      {/* Category + spots */}
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderLeft}>
           <Text style={styles.cardCategory}>{quest.category}</Text>
@@ -87,8 +68,6 @@ function QuestCard({
         {quest.description}
       </Text>
 
-      {/* Participants horizontal scroll */}
-
       <View>
         <Text style={styles.participantsLabel}>
           {quest.participants.length} joined
@@ -97,7 +76,6 @@ function QuestCard({
 
       <View style={styles.divider} />
 
-      {/* Creator */}
       <View style={styles.creatorRow}>
         <UserAvatar
           name={quest.creator_first_name}
@@ -120,22 +98,54 @@ function QuestCard({
 export default function FeedScreen() {
   const router = useRouter();
   const { quests, loading, refreshing, refresh } = useFeedQuests();
+  const [search, setSearch] = useState("");
 
   function handleUserPress(userId: string) {
     router.push({ pathname: "/feed/user/[userId]", params: { userId } } as any);
   }
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return quests;
+    return quests.filter(
+      (quest) =>
+        quest.title.toLowerCase().includes(q) ||
+        quest.description.toLowerCase().includes(q)
+    );
+  }, [quests, search]);
+
   return (
-    <Screen>
+    <Screen edges={["top", "left", "right"]}>
       <View style={styles.header}>
         <Text style={styles.headerEyebrow}>— SEE WHAT'S OUT THERE —</Text>
         <Text style={styles.heading}>EXPLORE</Text>
       </View>
+
+      <View style={styles.searchWrap}>
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={16} color={Colors.textMuted} />
+          <TextInput
+            style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search quests…"
+            placeholderTextColor={Colors.textMuted}
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")} activeOpacity={0.7}>
+              <Ionicons name="close-circle" size={16} color={Colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
       {loading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />
       ) : (
         <FlatList
-          data={quests}
+          style={styles.listContainer}
+          data={filtered}
           keyExtractor={(q) => q.quest_id}
           renderItem={({ item }) => (
             <QuestCard
@@ -147,7 +157,9 @@ export default function FeedScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <Text style={styles.empty}>
-              No quests out there yet — be the first to post one! 🏕
+              {search.trim().length > 0
+                ? "No quests match your search."
+                : "No quests out there yet — be the first to post one! 🏕"}
             </Text>
           }
           refreshControl={
@@ -187,8 +199,36 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 2,
   },
+  listContainer: { flex: 1 },
   loader: { flex: 1 },
   list: { padding: Spacing.lg, gap: Spacing.md },
+
+  searchWrap: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+  },
+  searchInput: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: FontSize.sm,
+    padding: 0,
+  },
+
   empty: {
     color: Colors.textSecondary,
     textAlign: "center",
@@ -257,19 +297,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: Spacing.xs,
   },
-  participantsScroll: { marginHorizontal: -Spacing.xs },
-  participantChip: {
-    alignItems: "center",
-    gap: 4,
-    marginHorizontal: Spacing.xs,
-    paddingVertical: 2,
-  },
-  participantName: {
-    color: Colors.text,
-    fontSize: FontSize.xs,
-    fontWeight: "700",
-  },
-  participantAge: { color: Colors.textMuted, fontSize: 10, fontWeight: "600" },
 
   divider: { height: 2, backgroundColor: Colors.border },
 

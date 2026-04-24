@@ -46,13 +46,20 @@ export default function ProfileSetupScreen() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
 
-    const phoneHash = phone ? await sha256(phone) : await sha256(user.id);
+    // Use the phone number from Supabase auth as the source of truth
+    const phoneForHash = phone || user.phone;
+    if (!phoneForHash) {
+      setLoading(false);
+      setError('No phone number on this session. Please restart sign up.');
+      return;
+    }
+    const phoneHash = await sha256(phoneForHash);
 
     const { error: upsertError } = await supabase.from('dim_user').upsert({
       user_id: user.id,
       phone_hash: phoneHash,
       first_name: firstName.trim(),
-      photo_url: '',           // updated in selfie step; empty string satisfies NOT NULL
+      photo_url: null,
       age: ageNum,
       gender,
     });
