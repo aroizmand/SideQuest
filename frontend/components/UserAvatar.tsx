@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { TouchableOpacity, View, Image, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
@@ -11,13 +12,14 @@ type Props = {
 };
 
 export function UserAvatar({ name, photo, size = 40, verified = false, onPress }: Props) {
+  const [imgError, setImgError] = useState(false);
   const shieldIconSize = Math.round(size * 0.32);
   const shieldContainerSize = Math.round(size * 0.44);
   const shieldOffset = -Math.round(size * 0.07);
 
   const inner = (
     <View style={{ width: size, height: size }}>
-      {photo ? (
+      {photo && !imgError ? (
         <Image
           source={{ uri: photo }}
           style={{
@@ -25,6 +27,7 @@ export function UserAvatar({ name, photo, size = 40, verified = false, onPress }
             borderRadius: size / 2,
             borderWidth: 2, borderColor: Colors.border,
           }}
+          onError={() => setImgError(true)}
         />
       ) : (
         <View style={[styles.initials, { width: size, height: size, borderRadius: size / 2 }]}>

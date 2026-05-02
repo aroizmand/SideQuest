@@ -5,20 +5,13 @@
 -- dim_category seed data
 -- ============================================================================
 INSERT INTO dim_category (name, icon_slug) VALUES
-  ('Hiking',                'hiking'),
-  ('Trail Running',         'trail-running'),
-  ('Cycling',               'cycling'),
-  ('Watersports',           'watersports'),
-  ('Winter Sports',         'winter-sports'),
-  ('Climbing',              'climbing'),
-  ('Urban Exploration',     'urban-exploration'),
-  ('Fitness & Workout',     'fitness'),
-  ('Food Adventure',        'food-adventure'),
-  ('Photography Walk',      'photography'),
-  ('Travel & Day Trip',     'travel'),
-  ('Outdoor Arts & Culture','arts-outdoor'),
-  ('Motorsports',           'motorsports'),
-  ('Other Adventure',       'other')
+  ('Outdoors',        'outdoors'),
+  ('Sports & Fitness','sports'),
+  ('Food & Drinks',   'food'),
+  ('Arts & Culture',  'arts'),
+  ('Travel & Explore','travel'),
+  ('Social',          'social'),
+  ('Other',           'other')
 ON CONFLICT (name) DO NOTHING;
 
 -- ============================================================================

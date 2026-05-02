@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { UserAvatar } from '@/components/UserAvatar';
 import { useQuestDetail } from '@/hooks/useQuestDetail';
 import { useQuestMembership } from '@/hooks/useQuestMembership';
+import { RetroTitle } from '@/components/RetroTitle';
 import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
 import type { Participant } from '@/hooks/useQuestDetail';
 
@@ -105,8 +106,7 @@ export default function QuestDetailScreen() {
           <Ionicons name="arrow-back" size={22} color={Colors.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerEyebrow}>— QUEST DETAILS —</Text>
-          <Text style={styles.headerTitle} numberOfLines={1}>{quest.title}</Text>
+          <RetroTitle size={FontSize.lg}>{quest.title}</RetroTitle>
         </View>
         <View style={styles.backBtn} />
       </View>
@@ -247,20 +247,6 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 36, alignItems: 'flex-start' },
   headerCenter: { flex: 1, alignItems: 'center', gap: 2 },
-  headerEyebrow: {
-    color: Colors.text,
-    fontSize: FontSize.xs,
-    fontWeight: '800',
-    letterSpacing: 2,
-    opacity: 0.7,
-  },
-  headerTitle: {
-    color: Colors.text,
-    fontSize: FontSize.lg,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-
   // Badges row
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
   categoryBadge: {

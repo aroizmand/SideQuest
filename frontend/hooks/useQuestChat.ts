@@ -12,7 +12,7 @@ export type ChatMessage = {
   sender_photo: string | null;
 };
 
-export function useQuestChat(questId: string) {
+export function useQuestChat(questId: string, questTitle?: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -105,6 +105,15 @@ export function useQuestChat(questId: string) {
       body: trimmed,
     });
     setSending(false);
+    if (!error) {
+      const senderName = senderCache.current[currentUserId]?.sender_name
+        ?? useProfileStore.getState().profile?.first_name
+        ?? 'Someone';
+      // Fire-and-forget — don't block or fail the send if notifications fail
+      supabase.functions.invoke('notify-new-message', {
+        body: { quest_id: questId, sender_id: currentUserId, sender_name: senderName, body: trimmed, quest_title: questTitle },
+      }).catch(() => {});
+    }
     return !error;
   }
 

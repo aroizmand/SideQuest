@@ -1,8 +1,11 @@
-import { Redirect, Tabs, usePathname } from "expo-router";
+import { useEffect } from "react";
+import { Redirect, Tabs, usePathname, useRouter } from "expo-router";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
 import { useAuthStore } from "@/stores/authStore";
+import { useRegisterPushToken } from "@/hooks/usePushNotifications";
 import { Colors } from "@/constants/theme";
 
 function TabButton({
@@ -87,6 +90,22 @@ function CreateTabButton({ onPress }: { onPress: () => void }) {
 export default function AppLayout() {
   const { session, initialized, hasProfile } = useAuthStore();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  useRegisterPushToken();
+
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response: any) => {
+      const data = response.notification.request.content.data as { quest_id?: string; quest_title?: string };
+      if (data?.quest_id) {
+        router.push({
+          pathname: '/messages/[questId]',
+          params: { questId: data.quest_id, title: data.quest_title ?? 'Chat' },
+        } as any);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   if (!initialized) return null;
   if (!session) return <Redirect href="/(auth)/welcome" />;

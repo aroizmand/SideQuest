@@ -21,10 +21,10 @@ import type { PastQuest } from "@/hooks/usePastQuests";
 import type { ReceivedRating } from "@/hooks/useReceivedRatings";
 
 const TAG_LABELS: Record<string, string> = {
-  showed_up: 'Showed up',
-  great_energy: 'Great energy',
-  felt_safe: 'Felt safe',
-  no_show: 'No-show',
+  showed_up: "Showed up",
+  great_energy: "Great energy",
+  felt_safe: "Felt safe",
+  no_show: "No-show",
 };
 
 function SectionLabel({ children }: { children: string }) {
@@ -36,15 +36,31 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
-function QuestHistoryRow({ quest, onPress }: { quest: PastQuest; onPress: () => void }) {
+function QuestHistoryRow({
+  quest,
+  onPress,
+}: {
+  quest: PastQuest;
+  onPress: () => void;
+}) {
   const date = new Date(quest.starts_at).toLocaleDateString([], {
-    month: "short", day: "numeric", year: "numeric",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
   return (
-    <TouchableOpacity style={styles.historyRow} onPress={onPress} activeOpacity={0.75}>
+    <TouchableOpacity
+      style={styles.historyRow}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
       <View style={styles.historyInfo}>
-        <Text style={styles.historyTitle} numberOfLines={1}>{quest.title}</Text>
-        <Text style={styles.historyMeta}>{quest.category} · {date}</Text>
+        <Text style={styles.historyTitle} numberOfLines={1}>
+          {quest.title}
+        </Text>
+        <Text style={styles.historyMeta}>
+          {quest.category} · {date}
+        </Text>
       </View>
       <View style={styles.rateChip}>
         <Text style={styles.rateChipText}>RATE CREW</Text>
@@ -55,16 +71,24 @@ function QuestHistoryRow({ quest, onPress }: { quest: PastQuest; onPress: () => 
 
 function ReviewCard({ rating }: { rating: ReceivedRating }) {
   const date = new Date(rating.created_at).toLocaleDateString([], {
-    month: "short", day: "numeric", year: "numeric",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
-  const stars = '★'.repeat(rating.score) + '☆'.repeat(5 - rating.score);
+  const stars = "★".repeat(rating.score) + "☆".repeat(5 - rating.score);
   return (
     <View style={styles.reviewCard}>
       <View style={styles.reviewHeader}>
-        <UserAvatar name={rating.from_first_name} photo={rating.from_photo_url} size={36} />
+        <UserAvatar
+          name={rating.from_first_name}
+          photo={rating.from_photo_url}
+          size={36}
+        />
         <View style={styles.reviewMeta}>
           <Text style={styles.reviewFrom}>{rating.from_first_name}</Text>
-          <Text style={styles.reviewQuest} numberOfLines={1}>{rating.quest_title}</Text>
+          <Text style={styles.reviewQuest} numberOfLines={1}>
+            {rating.quest_title}
+          </Text>
         </View>
         <View style={styles.reviewRight}>
           <Text style={styles.reviewStars}>{stars}</Text>
@@ -88,7 +112,8 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { profile, reload } = useOwnProfile();
   const { quests: pastQuests, loading: questsLoading } = usePastQuests();
-  const { ratings: receivedRatings, loading: ratingsLoading } = useReceivedRatings(profile?.user_id);
+  const { ratings: receivedRatings, loading: ratingsLoading } =
+    useReceivedRatings(profile?.user_id);
   const [uploading, setUploading] = useState(false);
 
   async function handleAvatarPress() {
@@ -105,7 +130,7 @@ export default function ProfileScreen() {
       <View style={styles.topBar}>
         <View style={styles.topBarSpacer} />
         <View style={styles.topBarCenter}>
-          <RetroTitle>ME</RetroTitle>
+          <RetroTitle>PROFILE</RetroTitle>
         </View>
         <TouchableOpacity
           style={styles.gearBtn}
@@ -168,7 +193,9 @@ export default function ProfileScreen() {
             <>
               <View style={styles.statDivider} />
               <View style={styles.stat}>
-                <Text style={[styles.statValue, { color: Colors.success }]}>✓</Text>
+                <Text style={[styles.statValue, { color: Colors.success }]}>
+                  ✓
+                </Text>
                 <Text style={styles.statLabel}>Verified</Text>
               </View>
             </>
@@ -191,7 +218,10 @@ export default function ProfileScreen() {
           <SectionLabel>ACCOMPLISHED QUESTS</SectionLabel>
 
           {questsLoading ? (
-            <ActivityIndicator color={Colors.primaryDark} style={{ marginTop: Spacing.md }} />
+            <ActivityIndicator
+              color={Colors.primaryDark}
+              style={{ marginTop: Spacing.md }}
+            />
           ) : pastQuests.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>
@@ -221,7 +251,10 @@ export default function ProfileScreen() {
           <SectionLabel>REVIEWS RECEIVED</SectionLabel>
 
           {ratingsLoading ? (
-            <ActivityIndicator color={Colors.primaryDark} style={{ marginTop: Spacing.md }} />
+            <ActivityIndicator
+              color={Colors.primaryDark}
+              style={{ marginTop: Spacing.md }}
+            />
           ) : receivedRatings.length === 0 ? (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>
@@ -269,18 +302,25 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: { marginBottom: Spacing.xs },
   editBadge: {
-    position: "absolute", bottom: 0, right: 0,
-    width: 28, height: 28,
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
     borderRadius: Radius.full,
     backgroundColor: Colors.surface,
-    borderWidth: 2, borderColor: Colors.background,
-    alignItems: "center", justifyContent: "center",
+    borderWidth: 2,
+    borderColor: Colors.background,
+    alignItems: "center",
+    justifyContent: "center",
   },
   editBadgeText: { color: Colors.textSecondary, fontSize: 13 },
   name: { color: Colors.text, fontSize: FontSize.xl, fontWeight: "700" },
   bio: {
-    color: Colors.textSecondary, fontSize: FontSize.sm,
-    textAlign: "center", paddingHorizontal: Spacing.xl,
+    color: Colors.textSecondary,
+    fontSize: FontSize.sm,
+    textAlign: "center",
+    paddingHorizontal: Spacing.xl,
   },
 
   statsRow: {
@@ -290,7 +330,10 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     backgroundColor: Colors.surface,
-    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
     borderColor: Colors.border,
     borderRadius: Radius.md,
   },
@@ -306,14 +349,21 @@ const styles = StyleSheet.create({
   },
   editProfileBtn: {
     flex: 1,
-    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
-    borderColor: Colors.border, borderRadius: Radius.sm,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
     paddingVertical: Spacing.sm + 2,
     alignItems: "center",
     backgroundColor: Colors.surface,
   },
   editProfileText: {
-    color: Colors.text, fontSize: FontSize.xs, fontWeight: "800", letterSpacing: 1,
+    color: Colors.text,
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    letterSpacing: 1,
   },
 
   section: {
@@ -324,7 +374,10 @@ const styles = StyleSheet.create({
 
   // Accomplished quests
   historyList: {
-    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
     borderColor: Colors.border,
     borderRadius: Radius.md,
     backgroundColor: Colors.surface,
@@ -340,23 +393,42 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.border,
   },
   historyInfo: { flex: 1, gap: 2, marginRight: Spacing.sm },
-  historyTitle: { color: Colors.text, fontSize: FontSize.sm, fontWeight: "700" },
-  historyMeta: { color: Colors.textMuted, fontSize: FontSize.xs, fontWeight: "600" },
+  historyTitle: {
+    color: Colors.text,
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+  },
+  historyMeta: {
+    color: Colors.textMuted,
+    fontSize: FontSize.xs,
+    fontWeight: "600",
+  },
   rateChip: {
     backgroundColor: `${Colors.primaryDark}33`,
-    borderTopWidth: 1, borderLeftWidth: 1, borderBottomWidth: 2, borderRightWidth: 2,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
     borderColor: Colors.primaryDark,
     borderRadius: Radius.sm,
     paddingHorizontal: Spacing.xs + 2,
     paddingVertical: 3,
   },
-  rateChipText: { color: Colors.text, fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  rateChipText: {
+    color: Colors.text,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
 
   // Reviews
   reviewList: { gap: Spacing.sm },
   reviewCard: {
     backgroundColor: Colors.surface,
-    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
     borderColor: Colors.border,
     borderRadius: Radius.md,
     padding: Spacing.md,
@@ -365,23 +437,38 @@ const styles = StyleSheet.create({
   reviewHeader: { flexDirection: "row", alignItems: "center", gap: Spacing.sm },
   reviewMeta: { flex: 1, gap: 2 },
   reviewFrom: { color: Colors.text, fontSize: FontSize.sm, fontWeight: "800" },
-  reviewQuest: { color: Colors.textMuted, fontSize: FontSize.xs, fontWeight: "600" },
+  reviewQuest: {
+    color: Colors.textMuted,
+    fontSize: FontSize.xs,
+    fontWeight: "600",
+  },
   reviewRight: { alignItems: "flex-end", gap: 2 },
-  reviewStars: { color: Colors.primaryDark, fontSize: FontSize.sm, letterSpacing: 1 },
+  reviewStars: {
+    color: Colors.primaryDark,
+    fontSize: FontSize.sm,
+    letterSpacing: 1,
+  },
   reviewDate: { color: Colors.textMuted, fontSize: 10 },
   reviewTags: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.xs },
   reviewTag: {
-    borderTopWidth: 1, borderLeftWidth: 1, borderBottomWidth: 2, borderRightWidth: 2,
+    borderTopWidth: 1,
+    borderLeftWidth: 1,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
     borderColor: Colors.border,
     borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.xs + 2, paddingVertical: 3,
+    paddingHorizontal: Spacing.xs + 2,
+    paddingVertical: 3,
     backgroundColor: Colors.background,
   },
   reviewTagText: { color: Colors.textMuted, fontSize: 10, fontWeight: "700" },
 
   // Shared empty state
   emptyCard: {
-    borderTopWidth: 2, borderLeftWidth: 2, borderBottomWidth: 4, borderRightWidth: 4,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
     borderColor: Colors.border,
     borderRadius: Radius.md,
     backgroundColor: Colors.surface,
@@ -389,15 +476,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyText: {
-    color: Colors.textMuted, fontSize: FontSize.sm, textAlign: "center", fontWeight: "600",
+    color: Colors.textMuted,
+    fontSize: FontSize.sm,
+    textAlign: "center",
+    fontWeight: "600",
   },
 });
 
 const sec = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: Spacing.sm, marginBottom: 2 },
-  bar: { width: 4, height: 14, backgroundColor: Colors.primaryDark, borderRadius: 0 },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginBottom: 2,
+  },
+  bar: {
+    width: 4,
+    height: 14,
+    backgroundColor: Colors.primaryDark,
+    borderRadius: 0,
+  },
   text: {
-    color: Colors.text, fontSize: FontSize.xs, fontWeight: "900",
-    letterSpacing: 2, textTransform: "uppercase",
+    color: Colors.text,
+    fontSize: FontSize.xs,
+    fontWeight: "900",
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
 });

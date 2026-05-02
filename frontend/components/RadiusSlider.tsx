@@ -41,7 +41,7 @@ export function RadiusSlider({ value, onChange }: Props) {
         live.current.onChange(snap(e.nativeEvent.locationX)),
       onPanResponderMove: (e) =>
         live.current.onChange(snap(e.nativeEvent.locationX)),
-    })
+    }),
   ).current;
 
   const pct = (value - MIN) / (MAX - MIN); // 0..1
@@ -94,9 +94,7 @@ export function RadiusSlider({ value, onChange }: Props) {
             key={km}
             style={[styles.labelWrap, { left: tickLeft(km) - 14 }]}
           >
-            <Text style={styles.labelText}>
-              {km === MAX ? "ANY" : `${km}`}
-            </Text>
+            <Text style={styles.labelText}>{km === MAX ? "ANY" : `${km}`}</Text>
           </View>
         ))}
       </View>
@@ -155,7 +153,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   grip: {
-    color: Colors.border,
+    color: Colors.surface,
     fontSize: FontSize.sm,
     fontWeight: "900",
     letterSpacing: -2,

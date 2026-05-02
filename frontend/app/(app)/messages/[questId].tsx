@@ -67,7 +67,7 @@ export default function QuestChatScreen() {
     title: string;
   }>();
   const { messages, loading, sending, sendMessage, myUserId } =
-    useQuestChat(questId);
+    useQuestChat(questId, title);
   const [draft, setDraft] = useState("");
   const listRef = useRef<FlatList>(null);
 
