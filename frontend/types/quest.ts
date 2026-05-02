@@ -16,6 +16,7 @@ export type FeedQuest = {
   icon_slug: string;
   starts_at: string;
   neighborhood: string;
+  city: string;
   lat_area: number;
   lng_area: number;
   max_participants: number;

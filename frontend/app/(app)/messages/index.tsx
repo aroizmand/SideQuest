@@ -2,6 +2,7 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator }
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
+import { RetroTitle } from '@/components/RetroTitle';
 import { useQuestChats } from '@/hooks/useQuestChats';
 import { Colors, FontSize, Spacing, Radius } from '@/constants/theme';
 import type { QuestChatPreview } from '@/hooks/useQuestChats';
@@ -76,8 +77,7 @@ export default function MessagesScreen() {
   return (
     <Screen edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <Text style={styles.headerEyebrow}>— GROUP CHATS —</Text>
-        <Text style={styles.heading}>MESSAGES</Text>
+        <RetroTitle>MESSAGES</RetroTitle>
       </View>
       {loading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primaryDark} />
@@ -117,8 +117,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4, borderBottomColor: Colors.border,
     backgroundColor: Colors.primaryDark, alignItems: 'center', gap: 2,
   },
-  headerEyebrow: { color: Colors.text, fontSize: FontSize.xs, fontWeight: '800', letterSpacing: 2, opacity: 0.7 },
-  heading: { color: Colors.text, fontSize: FontSize.xxl, fontWeight: '900', letterSpacing: 2 },
   loader: { flex: 1 },
   list: { flexGrow: 1 },
   separator: { height: 2, backgroundColor: Colors.border, marginLeft: 72 },

@@ -5,8 +5,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as Location from "expo-location";
+import { Ionicons } from "@expo/vector-icons";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { Screen } from "@/components/Screen";
 import { Button } from "@/components/Button";
@@ -14,6 +17,9 @@ import { Input } from "@/components/Input";
 import { useCreateQuest } from "@/hooks/useCreateQuest";
 import { useCategories } from "@/hooks/useCategories";
 import { useProfileStore } from "@/stores/profileStore";
+import { PlacesAutocomplete } from "@/components/PlacesAutocomplete";
+import { RetroTitle } from "@/components/RetroTitle";
+import { fuzzeCoords } from "@/lib/locationUtils";
 import { Colors, FontSize, Spacing, Radius } from "@/constants/theme";
 import type { Gender } from "@/types/user";
 
@@ -28,10 +34,15 @@ const EMPTY_FORM = {
   title: "",
   description: "",
   neighborhood: "",
+  addressText: "",
   startsAt: null as Date | null,
   maxParticipants: "6",
   categoryId: null as number | null,
   myGenderOnly: false,
+  latExact: null as number | null,
+  lngExact: null as number | null,
+  latArea: null as number | null,
+  lngArea: null as number | null,
   error: "",
 };
 
@@ -62,6 +73,13 @@ export default function CreateScreen() {
     EMPTY_FORM.categoryId,
   );
   const [myGenderOnly, setMyGenderOnly] = useState(EMPTY_FORM.myGenderOnly);
+  const [latExact, setLatExact] = useState(EMPTY_FORM.latExact);
+  const [lngExact, setLngExact] = useState(EMPTY_FORM.lngExact);
+  const [latArea, setLatArea] = useState(EMPTY_FORM.latArea);
+  const [lngArea, setLngArea] = useState(EMPTY_FORM.lngArea);
+  const [addressText, setAddressText] = useState(EMPTY_FORM.addressText);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
   const [error, setError] = useState(EMPTY_FORM.error);
 
   const maxCount = parseInt(maxParticipants, 10) || 6;
@@ -74,7 +92,56 @@ export default function CreateScreen() {
     setMaxParticipants(EMPTY_FORM.maxParticipants);
     setCategoryId(EMPTY_FORM.categoryId);
     setMyGenderOnly(EMPTY_FORM.myGenderOnly);
+    setLatExact(EMPTY_FORM.latExact);
+    setLngExact(EMPTY_FORM.lngExact);
+    setLatArea(EMPTY_FORM.latArea);
+    setLngArea(EMPTY_FORM.lngArea);
+    setAddressText(EMPTY_FORM.addressText);
+    setLocationError("");
     setError(EMPTY_FORM.error);
+  }
+
+  function handlePlaceSelect(place: { name: string; address: string; lat: number; lng: number }) {
+    const { lat_area, lng_area } = fuzzeCoords(place.lat, place.lng);
+    setNeighborhood(place.name);
+    setAddressText(place.address);
+    setLatExact(place.lat);
+    setLngExact(place.lng);
+    setLatArea(lat_area);
+    setLngArea(lng_area);
+    setLocationError("");
+  }
+
+  function handlePlaceClear() {
+    setLatExact(null);
+    setLngExact(null);
+    setLatArea(null);
+    setLngArea(null);
+    setAddressText("");
+  }
+
+  async function handleSetLocation() {
+    setLocating(true);
+    setLocationError("");
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      setLocationError("Location permission denied. Enable it in settings.");
+      setLocating(false);
+      return;
+    }
+    const pos = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+    const { lat_area, lng_area } = fuzzeCoords(
+      pos.coords.latitude,
+      pos.coords.longitude
+    );
+    setLatExact(pos.coords.latitude);
+    setLngExact(pos.coords.longitude);
+    setLatArea(lat_area);
+    setLngArea(lng_area);
+    setAddressText("");
+    setLocating(false);
   }
 
   async function handleCreate() {
@@ -86,6 +153,10 @@ export default function CreateScreen() {
       !categoryId
     ) {
       setError("Fill in all fields and pick a category.");
+      return;
+    }
+    if (!latExact || !lngExact || !latArea || !lngArea) {
+      setError("Search for a place or tap USE MY LOCATION.");
       return;
     }
     if (title.trim().length < 5) {
@@ -116,6 +187,11 @@ export default function CreateScreen() {
       title: title.trim(),
       description: description.trim(),
       neighborhood: neighborhood.trim(),
+      address_text: addressText || undefined,
+      lat_exact: latExact,
+      lng_exact: lngExact,
+      lat_area: latArea,
+      lng_area: lngArea,
       starts_at: startsAt.toISOString(),
       max_participants: maxCount,
       category_id: categoryId,
@@ -136,8 +212,7 @@ export default function CreateScreen() {
     <Screen edges={["top", "left", "right"]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerEyebrow}>— QUEST DETAILS —</Text>
-        <Text style={styles.headerTitle}>CREATE YOUR OWN</Text>
+        <RetroTitle>CREATE YOUR OWN</RetroTitle>
       </View>
 
       <ScrollView
@@ -172,14 +247,49 @@ export default function CreateScreen() {
           </Text>
         </View>
 
-        {/* Neighborhood */}
+        {/* Location */}
         <View style={styles.section}>
           <SectionLabel>RALLY POINT</SectionLabel>
-          <Input
-            value={neighborhood}
-            onChangeText={setNeighborhood}
-            placeholder="Kensington"
+          <PlacesAutocomplete
+            onSelect={handlePlaceSelect}
+            onClear={handlePlaceClear}
           />
+          <View style={styles.orRow}>
+            <View style={styles.orLine} />
+            <Text style={styles.orText}>OR</Text>
+            <View style={styles.orLine} />
+          </View>
+          <TouchableOpacity
+            style={[styles.locationBtn, !!latExact && !addressText && styles.locationBtnSet]}
+            onPress={handleSetLocation}
+            activeOpacity={0.7}
+            disabled={locating}
+          >
+            {locating ? (
+              <ActivityIndicator size="small" color={Colors.text} />
+            ) : (
+              <>
+                <Ionicons
+                  name={latExact && !addressText ? "location" : "location-outline"}
+                  size={15}
+                  color={latExact && !addressText ? Colors.text : Colors.textMuted}
+                />
+                <Text style={[styles.locationBtnText, !!latExact && !addressText && styles.locationBtnTextSet]}>
+                  {latExact && !addressText ? "LOCATION SET ✓" : "USE MY LOCATION"}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+          {latExact && !addressText && (
+            <Input
+              value={neighborhood}
+              onChangeText={setNeighborhood}
+              placeholder="Area name (e.g. Kensington)"
+            />
+          )}
+          {locationError ? (
+            <Text style={styles.locationErr}>{locationError}</Text>
+          ) : null}
         </View>
 
         {/* Date */}
@@ -309,20 +419,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 2,
   },
-  headerEyebrow: {
-    color: Colors.text,
-    fontSize: FontSize.xs,
-    fontWeight: "800",
-    letterSpacing: 2,
-    opacity: 0.7,
-  },
-  headerTitle: {
-    color: Colors.text,
-    fontSize: FontSize.xxl,
-    fontWeight: "900",
-    letterSpacing: 2,
-  },
-
   content: { padding: Spacing.lg, gap: Spacing.lg },
 
   section: { gap: Spacing.sm },
@@ -407,6 +503,58 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: "600",
     marginTop: 2,
+  },
+
+  // "or" divider
+  orRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+  orLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: Colors.border,
+  },
+  orText: {
+    color: Colors.textMuted,
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+
+  // Location button
+  locationBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+  },
+  locationBtnSet: {
+    backgroundColor: Colors.primaryDark,
+    borderColor: Colors.primaryDark,
+  },
+  locationBtnText: {
+    color: Colors.textMuted,
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  locationBtnTextSet: {
+    color: Colors.text,
+  },
+  locationErr: {
+    color: Colors.error,
+    fontSize: FontSize.xs,
+    fontWeight: "600",
   },
 
   // Error

@@ -16,22 +16,33 @@ npm run lint         # ESLint check
 
 The project uses a **development build** (not Expo Go) — `android/` is a generated native project. After adding new native dependencies, re-run `npx expo prebuild --clean` to regenerate it.
 
+Production builds use EAS (`eas build`). The app has the **New React Native Architecture** enabled — keep this in mind when debugging native module compatibility issues.
+
 There is no test suite yet.
 
 ## Architecture
 
 **SideQuest** is a cross-platform mobile app (iOS/Android/Web) built with Expo 54 + Expo Router. Users create and join location-based "quests" — real-world group activities.
 
+### Repository layout
+
+- `frontend/` — mobile app (all dev commands run from here)
+- `supabase/migrations/` — 8 ordered SQL migration files that define the full star schema, RLS policies, views, RPC functions, seed data, and storage buckets
+- `docs/` — see [Docs](#docs) section below
+
 ### Directory layout (`frontend/`)
 
 - `app/` — Expo Router file-based routes, split into two layout groups:
   - `(auth)/` — unauthenticated stack: welcome → phone-entry → otp-verify → onboarding
-  - `(app)/` — authenticated tab navigator: feed, create, my-quests, profile
+  - `(app)/` — authenticated tab navigator: feed, create, my-quests, messages, profile
 - `components/` — reusable UI components; platform-specific files use `.web.tsx` suffix (e.g. `QuestFeedMap.web.tsx` stubs out the native maps component for web)
-- `hooks/` — one hook per data domain (`useFeedQuests`, `useCreateQuest`, `useStreamChannel`, etc.); all Supabase queries live here
-- `stores/` — Zustand stores for auth (`authStore.ts`) and onboarding state
-- `lib/` — singleton clients: `supabase.ts` (uses SecureStore, not AsyncStorage), `stream.ts` (Stream Chat), `profile.ts`
-- `types/database.ts` — auto-generated Supabase types; regenerate with the Supabase CLI when schema changes
+- `hooks/` — one hook per data domain (`useFeedQuests`, `useCreateQuest`, `useQuestChat`, etc.); all Supabase queries live here
+- `stores/` — Zustand stores: `authStore`, `categoriesStore`, `feedStore`, `myQuestsStore`, `onboardingStore`, `profileStore`
+- `lib/` — singleton clients: `supabase.ts` (uses SecureStore, not AsyncStorage), `uploadAvatar.ts` (Supabase Storage helper)
+- `types/` — `database.ts` (auto-generated Supabase types), `quest.ts`, `user.ts`; regenerate DB types with:
+  ```bash
+  npx supabase gen types typescript --local > frontend/types/database.ts
+  ```
 
 ### Data flow
 
@@ -45,7 +56,7 @@ Key DB views: `v_feed_quests` (public feed), `v_user_public_profile`. All tables
 
 ### State management
 
-- **Zustand** (`stores/`) for global client state (auth session, onboarding progress)
+- **Zustand** (`stores/`) for global client state (auth session, filters, onboarding progress)
 - **React hooks** (`hooks/`) for server state — no React Query; hooks call Supabase directly and manage local `useState`
 
 ### Auth flow

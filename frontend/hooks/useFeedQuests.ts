@@ -1,15 +1,37 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
+import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
 import { useFeedStore } from '@/stores/feedStore';
 import { useAuthStore } from '@/stores/authStore';
 import { useProfileStore } from '@/stores/profileStore';
 import type { FeedQuest, ParticipantPreview } from '@/types/quest';
 
+export type Coords = { lat: number; lng: number };
+
 export function useFeedQuests() {
   const { quests, setQuests } = useFeedStore();
   const [loading, setLoading] = useState(quests.length === 0);
   const [refreshing, setRefreshing] = useState(false);
+  const [coords, setCoords] = useState<Coords | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
+  const locationChecked = useRef(false);
+
+  useEffect(() => {
+    if (locationChecked.current) return;
+    locationChecked.current = true;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationDenied(true);
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    })();
+  }, []);
 
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true);
@@ -86,5 +108,5 @@ export function useFeedQuests() {
 
   useFocusEffect(useCallback(() => { load(); }, []));
 
-  return { quests, loading, refreshing, refresh: () => load(true) };
+  return { quests, loading, refreshing, refresh: () => load(true), coords, locationDenied };
 }

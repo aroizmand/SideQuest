@@ -11,6 +11,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "@/components/Screen";
+import { RetroTitle } from "@/components/RetroTitle";
 import { useMyQuests } from "@/hooks/useMyQuests";
 import { Colors, FontSize, Spacing, Radius } from "@/constants/theme";
 import type { MyQuest } from "@/hooks/useMyQuests";
@@ -108,8 +109,7 @@ export default function MyQuestsScreen() {
   return (
     <Screen edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <Text style={styles.headerEyebrow}>— YOUR ADVENTURES —</Text>
-        <Text style={styles.heading}>MY QUESTS</Text>
+        <RetroTitle>MY QUESTS</RetroTitle>
       </View>
 
       <TabBar tab={tab} onChange={setTab} counts={counts} />
@@ -152,13 +152,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 2,
   },
-  headerEyebrow: {
-    color: Colors.text, fontSize: FontSize.xs, fontWeight: "800", letterSpacing: 2, opacity: 0.7,
-  },
-  heading: {
-    color: Colors.text, fontSize: FontSize.xxl, fontWeight: "900", letterSpacing: 2,
-  },
-
   tabBar: {
     flexDirection: "row",
     gap: Spacing.xs,

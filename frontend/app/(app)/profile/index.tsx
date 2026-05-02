@@ -15,6 +15,7 @@ import { useOwnProfile } from "@/hooks/useOwnProfile";
 import { usePastQuests } from "@/hooks/usePastQuests";
 import { useReceivedRatings } from "@/hooks/useReceivedRatings";
 import { pickAndUploadAvatar } from "@/lib/uploadAvatar";
+import { RetroTitle } from "@/components/RetroTitle";
 import { Colors, FontSize, Spacing, Radius } from "@/constants/theme";
 import type { PastQuest } from "@/hooks/usePastQuests";
 import type { ReceivedRating } from "@/hooks/useReceivedRatings";
@@ -104,8 +105,7 @@ export default function ProfileScreen() {
       <View style={styles.topBar}>
         <View style={styles.topBarSpacer} />
         <View style={styles.topBarCenter}>
-          <Text style={styles.topBarEyebrow}>— YOUR PROFILE —</Text>
-          <Text style={styles.screenTitle}>ME</Text>
+          <RetroTitle>ME</RetroTitle>
         </View>
         <TouchableOpacity
           style={styles.gearBtn}
@@ -259,12 +259,6 @@ const styles = StyleSheet.create({
   },
   topBarSpacer: { width: 36 },
   topBarCenter: { flex: 1, alignItems: "center", gap: 2 },
-  topBarEyebrow: {
-    color: Colors.text, fontSize: FontSize.xs, fontWeight: "800", letterSpacing: 2, opacity: 0.7,
-  },
-  screenTitle: {
-    color: Colors.text, fontSize: FontSize.xxl, fontWeight: "900", letterSpacing: 2,
-  },
   gearBtn: { width: 36, alignItems: "flex-end" },
 
   heroSection: {

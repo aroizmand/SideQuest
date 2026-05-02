@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as Crypto from 'expo-crypto';
 import { supabase } from '@/lib/supabase';
 import type { Quest } from '@/types/quest';
 
@@ -6,6 +7,11 @@ export type CreateQuestInput = {
   title: string;
   description: string;
   neighborhood: string;
+  address_text?: string;       // full address, revealed on join
+  lat_exact: number;
+  lng_exact: number;
+  lat_area: number;
+  lng_area: number;
   starts_at: string;           // ISO string
   max_participants: number;
   category_id: number;
@@ -14,7 +20,6 @@ export type CreateQuestInput = {
   age_max?: number;
 };
 
-// Ensures a dim_date row exists for the given ISO date string and returns its date_id
 async function ensureDateId(isoString: string): Promise<number | null> {
   const d = new Date(isoString);
   const y = d.getFullYear();
@@ -26,36 +31,30 @@ async function ensureDateId(isoString: string): Promise<number | null> {
   return data as number;
 }
 
-// Find existing location by neighborhood name, or create one with Calgary defaults
-async function resolveLocationId(neighborhood: string): Promise<number | null> {
-  const { data: existing } = await supabase
-    .from('dim_location')
-    .select('location_id')
-    .ilike('neighborhood', neighborhood.trim())
-    .limit(1)
-    .single();
-
-  if (existing) return existing.location_id;
-
-  // TODO: geocode the neighborhood; until then every new location stacks on Calgary city-centre
-  const { data: created, error } = await supabase
+async function createLocation(input: CreateQuestInput): Promise<number | null> {
+  const hash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.MD5,
+    `${input.lat_exact}${input.lng_exact}`
+  );
+  const { data, error } = await supabase
     .from('dim_location')
     .insert({
-      neighborhood: neighborhood.trim(),
+      neighborhood: input.neighborhood.trim(),
       city: 'Calgary',
       province: 'AB',
       country: 'CA',
-      lat_area: 51.0447,
-      lng_area: -114.0719,
-      lat_exact: 51.0447,
-      lng_exact: -114.0719,
-      geohash: 'c3nfv',
+      lat_area: input.lat_area,
+      lng_area: input.lng_area,
+      lat_exact: input.lat_exact,
+      lng_exact: input.lng_exact,
+      geohash: hash.substring(0, 5),
+      address_text: input.address_text ?? null,
     })
     .select('location_id')
     .single();
 
   if (error) return null;
-  return created.location_id;
+  return data.location_id;
 }
 
 export function useCreateQuest() {
@@ -69,10 +68,12 @@ export function useCreateQuest() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); setError('Not signed in.'); return null; }
 
-    const location_id = await resolveLocationId(input.neighborhood);
-    if (!location_id) { setLoading(false); setError('Could not resolve location.'); return null; }
+    const [location_id, date_id] = await Promise.all([
+      createLocation(input),
+      ensureDateId(input.starts_at),
+    ]);
 
-    const date_id = await ensureDateId(input.starts_at);
+    if (!location_id) { setLoading(false); setError('Could not save location.'); return null; }
     if (!date_id) { setLoading(false); setError('Could not resolve date.'); return null; }
 
     const { data, error: insertError } = await supabase

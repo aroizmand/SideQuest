@@ -13,7 +13,10 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "@/components/Screen";
 import { UserAvatar } from "@/components/UserAvatar";
+import { RadiusSlider } from "@/components/RadiusSlider";
+import { RetroTitle } from "@/components/RetroTitle";
 import { useFeedQuests } from "@/hooks/useFeedQuests";
+import { useFeedStore } from "@/stores/feedStore";
 import { Colors, FontSize, Spacing, Radius } from "@/constants/theme";
 import type { FeedQuest } from "@/types/quest";
 
@@ -23,6 +26,18 @@ const GENDER_LABELS: Record<string, string> = {
   non_binary: "Non-binary",
   prefer_not_to_say: "—",
 };
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLng = (lng2 - lng1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
+}
 
 function QuestCard({
   quest,
@@ -97,28 +112,42 @@ function QuestCard({
 
 export default function FeedScreen() {
   const router = useRouter();
-  const { quests, loading, refreshing, refresh } = useFeedQuests();
+  const { quests, loading, refreshing, refresh, coords, locationDenied } = useFeedQuests();
+  const { radius, setRadius, userCity, setUserCity } = useFeedStore();
   const [search, setSearch] = useState("");
 
   function handleUserPress(userId: string) {
     router.push({ pathname: "/feed/user/[userId]", params: { userId } } as any);
   }
 
+  const locationFiltered = useMemo(() => {
+    if (coords && radius < 100) {
+      return quests.filter(
+        (q) => haversineKm(coords.lat, coords.lng, q.lat_area, q.lng_area) <= radius
+      );
+    }
+    if (locationDenied && userCity.trim()) {
+      return quests.filter((q) =>
+        q.city.toLowerCase().includes(userCity.trim().toLowerCase())
+      );
+    }
+    return quests;
+  }, [quests, coords, radius, locationDenied, userCity]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return quests;
-    return quests.filter(
+    if (!q) return locationFiltered;
+    return locationFiltered.filter(
       (quest) =>
         quest.title.toLowerCase().includes(q) ||
         quest.description.toLowerCase().includes(q)
     );
-  }, [quests, search]);
+  }, [locationFiltered, search]);
 
   return (
     <Screen edges={["top", "left", "right"]}>
       <View style={styles.header}>
-        <Text style={styles.headerEyebrow}>— SEE WHAT'S OUT THERE —</Text>
-        <Text style={styles.heading}>EXPLORE</Text>
+        <RetroTitle>EXPLORE</RetroTitle>
       </View>
 
       <View style={styles.searchWrap}>
@@ -140,6 +169,38 @@ export default function FeedScreen() {
         </View>
       </View>
 
+      {coords && (
+        <View style={styles.radiusRow}>
+          <View style={styles.radiusLabelRow}>
+            <Text style={styles.radiusLabel}>RADIUS</Text>
+            <Text style={styles.radiusValue}>
+              {radius >= 100 ? "ANY" : `${radius} KM`}
+            </Text>
+          </View>
+          <RadiusSlider value={radius} onChange={setRadius} />
+        </View>
+      )}
+
+      {locationDenied && (
+        <View style={styles.cityWrap}>
+          <Ionicons name="location-outline" size={16} color={Colors.textMuted} />
+          <TextInput
+            style={styles.cityInput}
+            value={userCity}
+            onChangeText={setUserCity}
+            placeholder="Filter by city…"
+            placeholderTextColor={Colors.textMuted}
+            returnKeyType="done"
+            autoCorrect={false}
+          />
+          {userCity.length > 0 && (
+            <TouchableOpacity onPress={() => setUserCity("")} activeOpacity={0.7}>
+              <Ionicons name="close-circle" size={16} color={Colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       {loading ? (
         <ActivityIndicator style={styles.loader} color={Colors.primary} />
       ) : (
@@ -159,6 +220,10 @@ export default function FeedScreen() {
             <Text style={styles.empty}>
               {search.trim().length > 0
                 ? "No quests match your search."
+                : coords && radius < 100
+                ? `No quests within ${radius} km of you.`
+                : locationDenied && userCity.trim()
+                ? `No quests found in "${userCity}".`
                 : "No quests out there yet — be the first to post one! 🏕"}
             </Text>
           }
@@ -186,19 +251,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 2,
   },
-  headerEyebrow: {
-    color: Colors.text,
-    fontSize: FontSize.xs,
-    fontWeight: "800",
-    letterSpacing: 2,
-    opacity: 0.7,
-  },
-  heading: {
-    color: Colors.text,
-    fontSize: FontSize.xxl,
-    fontWeight: "900",
-    letterSpacing: 2,
-  },
   listContainer: { flex: 1 },
   loader: { flex: 1 },
   list: { padding: Spacing.lg, gap: Spacing.md },
@@ -223,6 +275,53 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   searchInput: {
+    flex: 1,
+    color: Colors.text,
+    fontSize: FontSize.sm,
+    padding: 0,
+  },
+
+  radiusRow: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: 4,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.border,
+  },
+  radiusLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  radiusLabel: {
+    color: Colors.textMuted,
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    letterSpacing: 1,
+  },
+  radiusValue: {
+    color: Colors.primary,
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+  },
+  cityWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.surface,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderColor: Colors.border,
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+  },
+  cityInput: {
     flex: 1,
     color: Colors.text,
     fontSize: FontSize.sm,
